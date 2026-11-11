@@ -117,11 +117,12 @@ namespace client {
             /// @details Original: FEventRunning := 1.
             void startedElsewhere() { m_running = true; }
 
-            /// @brief Starts an NPC's event because the party leader started it (qol NPC mirror): no proximity check, talk lines
-            /// move on by themselves and dialogs are answered with the leader's answers.
-            /// @param npcIndex Index of the NPC.
-            /// @return True when the NPC's event was asked for.
-            bool startMirrored(int npcIndex);
+            /// @brief Starts an NPC's or a door's event because the party leader started it (qol NPC mirror): no proximity check,
+            /// talk lines move on by themselves and dialogs are answered with the leader's answers.
+            /// @param trigger How the leader started it; the same 20/x trigger is sent.
+            /// @param index Index of the NPC or the door.
+            /// @return True when the event was asked for.
+            bool startMirrored(PartyTrigger trigger, int index);
 
             /// @brief The leader answered a dialog; the mirrored event answers its own matching dialog the same way.
             /// @param dataId The leader's dialog surface.

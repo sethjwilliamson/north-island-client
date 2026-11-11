@@ -66,16 +66,28 @@ namespace client {
         return true;
     }
 
-    bool EventRunner::startMirrored(int npcIndex) {
+    bool EventRunner::startMirrored(PartyTrigger trigger, int index) {
         if (m_running || m_waitingReply || (m_hooks.fighting && m_hooks.fighting())) {
             return false;
         }
         m_mirrored = true;
         m_leaderEnded = false;
         m_leaderAnswers.clear();
-        m_eventNpc = npcIndex;
         m_running = true;
-        m_hooks.send(protocol::npcClickedRequest(npcIndex));
+        switch (trigger) {
+            case PartyTrigger::NpcClick:
+                m_eventNpc = index;
+                m_hooks.send(protocol::npcClickedRequest(index));
+                break;
+            case PartyTrigger::NpcNear:
+                m_eventNpc = index;
+                m_hooks.send(protocol::npcNearRequest(index));
+                break;
+            case PartyTrigger::Door:
+                m_eventDoor = index;
+                m_hooks.send(protocol::doorEnteredRequest(index));
+                break;
+        }
         m_waitingReply = true;
         return true;
     }

@@ -32,6 +32,13 @@
 
 namespace client {
 
+    /// @brief What started the party leader's event, for the members that mirror it (qol): the 20/x trigger it sent.
+    enum class PartyTrigger {
+        NpcClick, // 20/1: the leader clicked an NPC
+        NpcNear, // 20/2: the leader came near an NPC whose events start so
+        Door, // 20/8: the leader walked into a door with events
+    };
+
     /// @brief What the screens of the game share; the Application owns all of it.
     struct GameServices {
         const GameDirectory& game;
@@ -70,9 +77,9 @@ namespace client {
         std::function<bool(std::int32_t playerId)> isPartyMember;
         std::function<void(std::int32_t playerId)> partyLogOut;
         std::function<void(bool centre, const std::string& text, int durationMs)> partyMessage;
-        std::function<bool()> partyMirrorsNpcs; // the members follow the leader's NPC talk (qol)
+        std::function<bool()> partyMirrorsNpcs; // the members follow the leader's NPC talk and doors (qol)
         std::function<void(bool on)> setPartyMirrorsNpcs;
-        std::function<void(int npcIndex)> partyNpcClicked; // the leader started an NPC's event
+        std::function<void(PartyTrigger trigger, int index)> partyEventStarted; // the leader started an NPC's or a door's event
         std::function<void(int dataId, int code)> partyEventAnswered; // the leader answered an event dialog
         std::function<void()> partyEventEnded; // the leader's event ended
         bool unseenPartyMember = false; // a party member's account, played without its own screen (qol)

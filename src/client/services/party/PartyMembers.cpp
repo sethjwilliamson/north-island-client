@@ -150,7 +150,7 @@ namespace client {
         services.partyLogOut = nullptr;
         services.partyMirrorsNpcs = nullptr;
         services.setPartyMirrorsNpcs = nullptr;
-        services.partyNpcClicked = nullptr;
+        services.partyEventStarted = nullptr;
         services.partyEventAnswered = nullptr;
         services.partyEventEnded = nullptr;
     }
@@ -176,10 +176,12 @@ namespace client {
         services.partyLogOut = [this](std::int32_t playerId) { logOut(playerId); };
         services.partyMirrorsNpcs = [this] { return m_mirrorNpcs; };
         services.setPartyMirrorsNpcs = [this](bool on) { m_mirrorNpcs = on; };
-        services.partyNpcClicked = [this](int npcIndex) {
-            forMirroringMembers([npcIndex](Member& member, WorldScene& world) {
-                if (!world.mirrorNpcClick(npcIndex)) {
-                    core::logInfo("party member ", member.account.account, ": cannot follow the leader to NPC ", npcIndex);
+        services.partyEventStarted = [this](PartyTrigger trigger, int index) {
+            forMirroringMembers([trigger, index](Member& member, WorldScene& world) {
+                if (!world.mirrorEvent(trigger, index)) {
+                    core::logInfo(
+                        "party member ", member.account.account, ": cannot follow the leader to ", trigger == PartyTrigger::Door ? "door " : "NPC ", index
+                    );
                 }
             });
         };
@@ -223,7 +225,7 @@ namespace client {
         services.partyLogOut = nullptr;
         services.partyMirrorsNpcs = nullptr;
         services.setPartyMirrorsNpcs = nullptr;
-        services.partyNpcClicked = nullptr;
+        services.partyEventStarted = nullptr;
         services.partyEventAnswered = nullptr;
         services.partyEventEnded = nullptr;
     }

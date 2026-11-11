@@ -410,10 +410,12 @@ namespace client {
             /// @param text The text.
             void sayAsPartyMember(int typedChannel, const std::string& text) { sendChat(typedChannel, text); }
 
-            /// @brief Starts the event of the NPC the party leader clicked (qol NPC mirror), even as a team follower.
-            /// @param npcIndex Index of the NPC.
-            /// @return True when the NPC's event was asked for.
-            bool mirrorNpcClick(int npcIndex);
+            /// @brief Starts the event of the NPC or door the party leader started (qol NPC mirror), even as a team follower, who
+            /// is never near it nor checks doors and NPC proximity.
+            /// @param trigger How the leader started it.
+            /// @param index Index of the NPC or the door.
+            /// @return True when the event was asked for.
+            bool mirrorEvent(PartyTrigger trigger, int index);
 
             /// @brief Passes the party leader's dialog answer to the mirrored event.
             /// @param dataId The leader's dialog surface.

@@ -1985,6 +1985,10 @@ namespace client {
         }
         m_currentDoor = door->index;
         m_mouseHeld = false;
+        // members first: a door that warps takes the team along, and a member's own 20/8 must reach the server before that
+        if (m_services.partyEventStarted) {
+            m_services.partyEventStarted(PartyTrigger::Door, door->index);
+        }
         m_eventRunner.doorEntered(door->index);
     }
 
@@ -2001,6 +2005,9 @@ namespace client {
             }
             m_nearNpc = npc.index;
             m_eventRunner.npcNear(npc.index);
+            if (m_services.partyEventStarted) {
+                m_services.partyEventStarted(PartyTrigger::NpcNear, npc.index);
+            }
             return;
         }
     }
@@ -3209,19 +3216,35 @@ namespace client {
         }
         if (m_eventRunner.npcClicked(npcIndex, npc->get().eventCount, npc->get().triggerHalfSize, !npc->get().body.walking)) {
             m_screen.consumeNextRelease();
-            if (m_services.partyNpcClicked) {
-                m_services.partyNpcClicked(npcIndex);
+            if (m_services.partyEventStarted) {
+                m_services.partyEventStarted(PartyTrigger::NpcClick, npcIndex);
             }
         }
         startAutoCollect(npc->get());
     }
 
-    bool WorldScene::mirrorNpcClick(int npcIndex) {
-        auto npc = findNpc(npcIndex);
-        if (!npc || npc->get().eventCount <= 0 || m_inputLocked) {
+    bool WorldScene::mirrorEvent(PartyTrigger trigger, int index) {
+        if (m_inputLocked) {
             return false;
         }
-        return m_eventRunner.startMirrored(npcIndex);
+        if (trigger == PartyTrigger::Door) {
+            const bool hasEvents = std::any_of(m_doors.begin(), m_doors.end(), [index](const formats::SceneDoor& door) {
+                return door.index == index && !door.eventIds.empty();
+            });
+            if (!hasEvents || !m_eventRunner.startMirrored(trigger, index)) {
+                return false;
+            }
+            m_currentDoor = index;
+            return true;
+        }
+        auto npc = findNpc(index);
+        if (!npc || npc->get().eventCount <= 0 || !m_eventRunner.startMirrored(trigger, index)) {
+            return false;
+        }
+        if (trigger == PartyTrigger::NpcNear) {
+            m_nearNpc = index;
+        }
+        return true;
     }
 
     void WorldScene::onMapSign(int kind, int index, int sign) {
