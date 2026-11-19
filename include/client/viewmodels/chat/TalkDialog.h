@@ -80,6 +80,17 @@ namespace client {
             /// @return True when open and exclusive.
             bool isMainOpen() const { return isOpen() && m_timing.exclusive; }
 
+            /// @brief Whether the box is open and done opening, so its buttons or choices are shown (test scripts wait for it).
+            /// @return True when it can be answered.
+            bool isReady() const { return isOpen() && !m_zoom; }
+
+            /// @brief Answers the box as a click would (test scripts): a number picks that choice (1 is the first), Confirm, Cancel or
+            /// Close presses that button, Next closes words that wait for a click.
+            /// @param what The answer.
+            /// @param result Receives what was answered, or why it could not be.
+            /// @return False, with the reason, when the box does not take that answer now.
+            bool scriptAnswer(const std::string& what, std::string& result);
+
             /// @brief Sets the hook told when an exclusive question opens (true) or is answered (false); the scene hides its windows meanwhile.
             /// @param hook Callback receiving the exclusive state.
             void setExclusiveHook(std::function<void(bool)> hook) { m_exclusive = std::move(hook); }

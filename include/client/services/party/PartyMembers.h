@@ -120,6 +120,10 @@ namespace client {
             /// @return The number of members.
             int size() const { return static_cast<int>(m_members.size()); }
 
+            /// @brief Tells whether every member has entered the world (test scripts wait for it).
+            /// @return True when all are in the world, also with no members.
+            bool allInWorld() const;
+
             /// @brief Finds the member whose battle commands are given now, shown and steered in the played account's place: the first
             /// member in the played account's own battle whose commands are due, once the played account's are given.
             /// @details A member whose commands are due in another battle is not shown: its row asks for attention (PartyMemberView::attention).

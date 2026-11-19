@@ -24,7 +24,7 @@ namespace client {
 
     /// @brief The login scene: server pick, connect, login, character pick and creation, until the own player enters the world.
     /// @details Original: LoginScene.xml (background and logo). Flow: pick a server (ServerSelectForm), connect and wait for the server to accept (server 1/9), log in from the LoginForm (client 63/4), pick a character (CharacterSelectForm, server 63/1 / client 63/2) or create one in an empty slot (CreateCharacterForm, server 1/3, client 9/1) and wait for the own player record (server 3).
-    class LoginScene : public Scene, private ServerEvents {
+    class LoginScene : public Scene, private ServerEvents, private ScriptLogin {
         public:
             /// @brief Builds the login screen and its forms; starts a relogin or shows the server list.
             /// @param services The shared game services.
@@ -75,9 +75,36 @@ namespace client {
             /// @return True while the form is shown.
             bool cutOff() const override { return m_disconnect.isOpen(); }
 
+            /// @brief Overrides Scene::scriptLogin: the login scene takes a test script's login command.
+            /// @return This scene's ScriptLogin.
+            std::optional<std::reference_wrapper<ScriptLogin>> scriptLogin() override { return std::ref(static_cast<ScriptLogin&>(*this)); }
+
         private:
             /// @brief The step of the login flow the scene is in.
             enum class Stage { ChoosingServer, Relogin, Connecting, EnteringAccount, LoggingIn, ChoosingCharacter, CreatingCharacter, EnteringWorld };
+
+            /// @brief An account a test script logs in with (login command), kept until the world is entered.
+            struct ScriptedLogin {
+                std::string account;
+                std::string password;
+                int slot = 1;
+            };
+
+            /// @brief Overrides ScriptLogin::hasServerRow: whether the server list shows a server.
+            /// @return True when it does.
+            bool hasServerRow() const override { return m_serverForm.hasServerRow(); }
+
+            /// @brief Overrides ScriptLogin::startLogin: connects to the first server; the account and slot go on by themselves.
+            /// @param account Account name.
+            /// @param password Account password.
+            /// @param slot Character slot.
+            /// @param reason Receives why it cannot start now.
+            /// @return False, with the reason, when the login cannot start.
+            bool startLogin(const std::string& account, const std::string& password, int slot, std::string& reason) override;
+
+            /// @brief Tells the services' errorShown hook (a test script ends there) about an error the scene shows.
+            /// @param text The error text.
+            void reportError(const std::string& text);
 
             /// @brief Connects to the chosen server and sends the hello action.
             /// @param server The server list entry.
@@ -204,6 +231,7 @@ namespace client {
             bool m_signingUp = false;
             std::uint64_t m_reloginMs = 0;
             std::optional<SceneKind> m_next;
+            std::optional<ScriptedLogin> m_scripted;
             std::mt19937 m_random{std::random_device{}()};
     };
 

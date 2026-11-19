@@ -21,7 +21,8 @@ namespace client {
         ui::Screen& screen,
         Hooks hooks
     )
-        : m_hooks(std::move(hooks)),
+        : m_services(services),
+          m_hooks(std::move(hooks)),
           m_layer(loadForm(services, screen)),
           m_text(screen.get<ui::TextBox>("DisconnectText")),
           m_previous(screen.get<ui::ImageButton>("DisconnectPrevious")),
@@ -53,11 +54,19 @@ namespace client {
             case DisconnectNotice::Buttons::End: setButtons(false, false, false, true); break; // End only
         }
         m_layer.setVisible(true);
+        reportShown(notice.text);
     }
 
     void DisconnectForm::show(const std::string& text) {
         m_text.setTextFromStart(text.substr(0, kShownChars));
         m_layer.setVisible(true);
+        reportShown(text);
+    }
+
+    void DisconnectForm::reportShown(const std::string& text) {
+        if (m_services.errorShown) {
+            m_services.errorShown("disconnection form: " + text);
+        }
     }
 
     void DisconnectForm::hide() {

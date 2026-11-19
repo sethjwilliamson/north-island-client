@@ -613,6 +613,20 @@ namespace client {
             /// @return True when it was shown after the mark.
             bool textSince(std::uint64_t mark, const std::string& text) const override { return m_seenTexts.containsSince(mark, text); }
 
+            /// @brief ScriptProbe: whether the talk box is open and done opening.
+            /// @return True when it can be answered.
+            bool talkReady() const override { return m_talk.isReady(); }
+
+            /// @brief ScriptProbe: answers the talk box as a click would.
+            /// @param answer A choice number, Confirm, Cancel, Close or Next.
+            /// @param result Receives what was answered, or why not.
+            /// @return False when the box does not take the answer.
+            bool answerTalk(const std::string& answer, std::string& result) override { return m_talk.scriptAnswer(answer, result); }
+
+            /// @brief ScriptProbe: whether the player's NPC or door event runs.
+            /// @return True while it runs.
+            bool eventRunning() const override { return m_eventRunner.isRunning(); }
+
             /// @brief The screen point of the first thing the hit test takes for the object, inside an area, where the world view takes the press.
             /// @param area The screen area to search.
             /// @param hits The hit test of the object.

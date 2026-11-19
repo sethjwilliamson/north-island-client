@@ -74,6 +74,13 @@ namespace client {
                 options.layoutDirectory = arguments[++i];
             } else if (argument == "--script" && hasValue) {
                 options.scriptFile = arguments[++i];
+            } else if (argument == "--script-timeout" && hasValue) {
+                const auto seconds = core::parseInt(arguments[++i]);
+                if (!seconds || *seconds <= 0) {
+                    error = "--script-timeout takes a number of seconds";
+                    return std::nullopt;
+                }
+                options.scriptTimeoutSeconds = static_cast<int>(*seconds);
             } else if (argument == "--renderer" && hasValue) {
                 options.rendererName = arguments[++i];
             } else if (argument == "--perf") {

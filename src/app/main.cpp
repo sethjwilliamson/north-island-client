@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -32,7 +33,9 @@ int main(int argc, char** argv) {
     std::string error;
     auto options = client::LaunchOptions::parse(arguments, programDirectory, error);
     if (!options) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Wonderland Online", error.c_str(), nullptr);
+        if (std::find(arguments.begin(), arguments.end(), "--script") == arguments.end()) { // a test script gets no box to click away
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Wonderland Online", error.c_str(), nullptr);
+        }
         std::cerr
             << error
             << "\nusage: north-island-client [--data GAME_FOLDER] [--user FOLDER] [--software] [--renderer NAME] [--perf] [--perf-log FILE] [--fps unlimited|vsync|N] [--window WxH|last]\n";

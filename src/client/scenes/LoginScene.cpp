@@ -10,6 +10,7 @@
 #include "protocol/LoginRequest.h"
 #include "protocol/MessageId.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <system_error>
 #include <utility>
@@ -151,6 +152,26 @@ namespace client {
         m_settingsButton.setVisible(true);
     }
 
+    bool LoginScene::startLogin(const std::string& account, const std::string& password, int slot, std::string& reason) {
+        if (m_stage != Stage::ChoosingServer) {
+            reason = "the login screen is busy (not at the server list)";
+            return false;
+        }
+        m_scripted = ScriptedLogin{account, password, slot};
+        if (!m_serverForm.connectFirst()) {
+            m_scripted.reset();
+            reason = "the server list has no server";
+            return false;
+        }
+        return true;
+    }
+
+    void LoginScene::reportError(const std::string& text) {
+        if (m_services.errorShown) {
+            m_services.errorShown(text);
+        }
+    }
+
     void LoginScene::connect(const formats::ServerEntry& server) {
         if (m_stage != Stage::ChoosingServer) {
             return;
@@ -188,6 +209,7 @@ namespace client {
     void LoginScene::backToServerList() {
         m_services.connection.close();
         m_services.session = AccountSession();
+        m_scripted.reset();
         m_relogin.hide();
         m_loginForm.hide();
         m_signUpForm.hide();
@@ -310,6 +332,12 @@ namespace client {
             login(relogin->account, relogin->password);
             return;
         }
+        if (m_scripted) {
+            m_serverForm.hide();
+            m_stage = Stage::EnteringAccount;
+            login(m_scripted->account, m_scripted->password);
+            return;
+        }
         showLoginForm();
     }
 
@@ -328,6 +356,7 @@ namespace client {
             return;
         }
         m_loginForm.clearFields();
+        reportError(reason == LoginRejection::WrongPassword ? "login refused: wrong account or password" : "login refused: the server did not answer");
         switch (reason) {
             case LoginRejection::Timeout: // login timed out
                 m_messages.show("Time out, please try later");
@@ -359,6 +388,15 @@ namespace client {
         if (const auto& relogin = m_services.session.relogin) {
             m_stage = Stage::ChoosingCharacter;
             enterWorld(relogin->slot);
+            return;
+        }
+        if (m_scripted) {
+            const int slot = m_scripted->slot;
+            if (std::none_of(list.characters.begin(), list.characters.end(), [slot](const auto& character) { return character.slot == slot; })) {
+                reportError("login: the account has no character in slot " + std::to_string(slot));
+            }
+            m_stage = Stage::ChoosingCharacter;
+            enterWorld(slot);
             return;
         }
         if (m_stage == Stage::LoggingIn && std::exchange(m_signingUp, false)) {
@@ -477,6 +515,7 @@ namespace client {
                 abandonRelogin();
             } else {
                 m_messages.show("Failure to connect the server");
+                reportError("login: the server did not answer within 30 s");
                 backToServerList();
             }
         }

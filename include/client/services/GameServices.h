@@ -87,6 +87,7 @@ namespace client {
         bool serverSorts = false;
         std::array<bool, 4> gameGroupsOpen = {true, false, false, false}; // which groups of the settings Game tab are open, until the game closes
         std::array<bool, 5> videoGroupsOpen = {true, false, false, false, false}; // which groups of the settings Video tab are open, until the game closes
+        std::function<void(const std::string& text)> errorShown = nullptr; // a modal error box opened (disconnection, refused login); a test script ends the program
 
         /// @brief Builds the UI load context (pictures, game file resolver, emote lookup).
         /// @return The load context.

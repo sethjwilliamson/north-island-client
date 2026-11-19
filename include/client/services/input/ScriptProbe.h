@@ -48,6 +48,20 @@ namespace client {
             /// @param text Text to search for.
             /// @return True when found.
             virtual bool textSince(std::uint64_t mark, const std::string& text) const = 0;
+
+            /// @brief Tells whether the event talk box (words, a question or a choice list) is open and done opening, so it can be answered.
+            /// @return True when it is.
+            virtual bool talkReady() const = 0;
+
+            /// @brief Answers the open talk box as a click would.
+            /// @param answer A choice number (1 is the first), Confirm, Cancel, Close or Next.
+            /// @param result Receives what was answered, or why it could not be.
+            /// @return False, with the reason, when the box does not take that answer.
+            virtual bool answerTalk(const std::string& answer, std::string& result) = 0;
+
+            /// @brief Tells whether an NPC or door event of the player runs (from its start until the server ends it).
+            /// @return True while it runs.
+            virtual bool eventRunning() const = 0;
     };
 
 }

@@ -46,6 +46,14 @@ namespace client {
             /// @brief Shows the form and asks for the statuses again.
             void show();
 
+            /// @brief Tells whether the list shows a server row (test scripts wait for it).
+            /// @return True when there is one.
+            bool hasServerRow() const;
+
+            /// @brief Selects the first server row and connects to it, as a double click on it does (test scripts).
+            /// @return False when the form is hidden or the list has no server row.
+            bool connectFirst();
+
             /// @brief Hides the form, forgets the statuses and clears the selection.
             /// @details Original: HideCtrl.
             void hide();

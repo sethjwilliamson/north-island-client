@@ -411,6 +411,12 @@ namespace client {
         return {};
     }
 
+    bool PartyMembers::allInWorld() const {
+        return std::all_of(m_members.begin(), m_members.end(), [](const auto& member) {
+            return member->world && member->world->get().inWorld() && !member->leavingSinceMs && !member->goneReason;
+        });
+    }
+
     bool PartyMembers::isMember(std::int32_t playerId) const {
         return std::any_of(m_members.begin(), m_members.end(), [playerId](const auto& member) {
             return member->world && !member->leavingSinceMs && member->world->get().ownId() == playerId;

@@ -249,6 +249,21 @@ namespace client {
         }
     }
 
+    bool ServerSelectForm::hasServerRow() const {
+        return std::any_of(m_tree.rows().begin(), m_tree.rows().end(), [](const Row& row) { return row.kind == Row::Kind::Server; });
+    }
+
+    bool ServerSelectForm::connectFirst() {
+        const auto& rows = m_tree.rows();
+        const auto first = std::find_if(rows.begin(), rows.end(), [](const Row& row) { return row.kind == Row::Kind::Server; });
+        if (!isVisible() || first == rows.end()) {
+            return false;
+        }
+        m_tree.select(*first);
+        connectToSelected();
+        return true;
+    }
+
     void ServerSelectForm::connectToSelected() {
         const std::optional<Row>& row = m_tree.selected();
         if (!isVisible() || !row) {

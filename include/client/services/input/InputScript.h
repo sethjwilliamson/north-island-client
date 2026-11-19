@@ -1,6 +1,7 @@
 #ifndef NORTH_ISLAND_CLIENT_SERVICES_INPUT_INPUT_SCRIPT_H
 #define NORTH_ISLAND_CLIENT_SERVICES_INPUT_INPUT_SCRIPT_H
 
+#include "client/services/input/ScriptLogin.h"
 #include "client/services/input/ScriptPendingClick.h"
 #include "client/services/input/ScriptProbe.h"
 #include "client/services/input/ScriptWait.h"
@@ -40,8 +41,26 @@ namespace client {
     ///   waitwin NAME [MS] (wait until the window of that layout Name is shown, default 10000);
     ///   waitmsg TEXT [MS] (wait until a chat or message line containing TEXT was shown since the last command that does something; default 10000);
     ///   waitmap ID [MS] (wait until the player is on map ID, default 30000).
+    /// @details Commands that wait for the game's state instead of a fixed time (log like the scene commands):
+    ///   login ACCOUNT PASSWORD [SLOT] [MS] (wait for the server list to show a server, connect to the first one, log in, enter the world with
+    ///   the character of SLOT, default 1, then wait as waitworld does; at most MS in all, default 60000);
+    ///   waitworld [MS] (wait until the world is loaded: the played account's map, and every --accounts party member in the world; default 60000);
+    ///   waitdialog [MS] (wait until the event talk box, with words, a question or choices, is open and can be answered; default 10000);
+    ///   choose ANSWER (answer the open talk box: N picks choice N, 1 the first; Confirm, Cancel or Close press that button; Next closes words);
+    ///   waitevent [MS] (wait until the player's NPC or door event has ended; default 15000);
+    ///   skiptalk [MS] (click away the talk boxes of words as they come, until the event ends or a box asks a question; default 15000);
+    ///   button NAME (click the shown layout button of that Name, e.g. GroupPartyMirror).
+    /// @details Failures: with --script, an error that would show a message box or a modal error form (a disconnection, a refused login)
+    /// is logged as "script: ERROR ..." and ends the program with exit code 3; --script-timeout SECONDS ends it with exit code 4 when the script
+    /// runs longer.
     class InputScript {
         public:
+            /// @brief What else the program offers the commands that wait for the game's state.
+            struct Host {
+                std::optional<std::reference_wrapper<ScriptLogin>> login; // the login scene's hook, while it is shown
+                std::function<bool()> worldReady; // the world is loaded, with the party members in it
+            };
+
             /// @brief Reads a script file.
             /// @param file Path of the script.
             /// @return The script, empty when the file cannot be read.
@@ -54,7 +73,14 @@ namespace client {
             /// @param nowMs Current time in milliseconds.
             /// @param inject Callback that feeds a server message payload to the game (recv command).
             /// @param probe What the scene offers for the commands that look into it (none: nothing to look into).
-            void step(ui::Screen& screen, std::uint64_t nowMs, const std::function<void(const core::Bytes&)>& inject, const Probe& probe = std::nullopt);
+            /// @param host What the program offers the login and waitworld commands.
+            void step(
+                ui::Screen& screen,
+                std::uint64_t nowMs,
+                const std::function<void(const core::Bytes&)>& inject,
+                const Probe& probe = std::nullopt,
+                const Host& host = {}
+            );
 
             /// @brief Takes the pending screenshot request, if any.
             /// @return The requested file name, empty when none.
@@ -122,6 +148,24 @@ namespace client {
             /// @param text The text to type.
             void typeText(ui::Screen& screen, const std::string& text);
 
+            /// @brief Runs one line of the commands that wait for the game's state (login, waitworld, waitdialog, choose, waitevent, skiptalk,
+            /// button).
+            /// @param command The first word of the line.
+            /// @param words The words of the line.
+            /// @param line The whole line.
+            /// @param screen Screen that receives the input.
+            /// @param nowMs Current time in milliseconds.
+            /// @param probe What the scene offers.
+            /// @return True when the command was one of them.
+            bool stateCommand(
+                const std::string& command,
+                const std::vector<std::string>& words,
+                const std::string& line,
+                ui::Screen& screen,
+                std::uint64_t nowMs,
+                const Probe& probe
+            );
+
             std::vector<std::string> m_lines;
             std::size_t m_next = 0;
             std::uint64_t m_waitUntilMs = 0;
@@ -132,6 +176,7 @@ namespace client {
             std::optional<ScriptPendingClick> m_click;
             bool m_quit = false;
             SDL_Joystick* m_pad = nullptr; // the virtual game pad of the pad commands
+            const Host* m_host = nullptr; // the host given to the step that runs now
     };
 
 }

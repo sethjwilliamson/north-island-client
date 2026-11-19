@@ -20,6 +20,7 @@ namespace client {
         gfx::RenderMode renderMode = gfx::RenderMode::Accelerated;
         std::filesystem::path scriptFile;
         bool background = false; // test runs: the window opens minimized without taking focus, and no sound plays
+        int scriptTimeoutSeconds = 0; // --script-timeout: the program ends with an error when the script runs longer (0: no limit)
         std::string rendererName;
         bool showFrameGraph = false;
         std::filesystem::path frameLogFile;

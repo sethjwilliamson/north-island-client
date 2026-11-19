@@ -4,6 +4,7 @@
 #include "core/FileSystem.h"
 #include "core/Log.h"
 #include "core/StringUtil.h"
+#include "ui/ImageButton.h"
 
 #include <SDL3/SDL.h>
 
@@ -59,6 +60,10 @@ namespace client {
         constexpr std::uint64_t kWindowTimeoutMs = 10000; // timeout waiting for a window, ms
         constexpr std::uint64_t kMessageTimeoutMs = 10000; // timeout waiting for a message, ms
         constexpr std::uint64_t kMapTimeoutMs = 30000; // timeout waiting for a map change, ms
+        constexpr std::uint64_t kLoginTimeoutMs = 60000; // timeout of a login until the world is loaded, ms
+        constexpr std::uint64_t kWorldTimeoutMs = 60000; // timeout waiting for the world, ms
+        constexpr std::uint64_t kDialogTimeoutMs = 10000; // timeout waiting for a talk box, ms
+        constexpr std::uint64_t kEventTimeoutMs = 15000; // timeout waiting for an event to end, ms
 
         /// @brief Formats a point as "(x,y)" for the log.
         /// @param point The point.
@@ -104,7 +109,14 @@ namespace client {
         return steps;
     }
 
-    void InputScript::step(ui::Screen& screen, std::uint64_t nowMs, const std::function<void(const core::Bytes&)>& inject, const Probe& probe) {
+    void InputScript::step(
+        ui::Screen& screen,
+        std::uint64_t nowMs,
+        const std::function<void(const core::Bytes&)>& inject,
+        const Probe& probe,
+        const Host& host
+    ) {
+        m_host = &host;
         if (m_click && nowMs >= m_click->dueMs) {
             finishClick(screen, nowMs, probe);
         }
@@ -296,10 +308,76 @@ namespace client {
                 inject(payload);
             } else if (command == "quit") {
                 m_quit = true;
-            } else if (!sceneCommand(command, line, screen, nowMs, probe)) {
+            } else if (!sceneCommand(command, line, screen, nowMs, probe) &&
+                       !stateCommand(command, ScriptCommand::words(line), line, screen, nowMs, probe)) {
                 core::logWarning("script: unknown command ", line);
             }
         }
+        m_host = nullptr;
+    }
+
+    bool InputScript::stateCommand(
+        const std::string& command,
+        const std::vector<std::string>& words,
+        const std::string& line,
+        ui::Screen& screen,
+        std::uint64_t nowMs,
+        const Probe& probe
+    ) {
+        ScriptWait wait;
+        wait.what = line;
+        if (command == "login") {
+            const auto slot = words.size() > 3 ? ScriptCommand::number(words[3]) : std::optional<int>(1);
+            if (words.size() < 3 || !slot || *slot < 1) {
+                core::logError("script: ERROR ", line, ": login ACCOUNT PASSWORD [SLOT] [MS] needs the account and password");
+                return true;
+            }
+            wait.kind = ScriptWait::Kind::Login;
+            wait.what = "login " + words[1];
+            wait.text = words[1];
+            wait.password = words[2];
+            wait.number = *slot;
+            wait.deadlineMs = nowMs + timeoutOf(words, 4, kLoginTimeoutMs);
+        } else if (command == "waitworld") {
+            wait.kind = ScriptWait::Kind::World;
+            wait.deadlineMs = nowMs + timeoutOf(words, 1, kWorldTimeoutMs);
+        } else if (command == "waitdialog") {
+            wait.kind = ScriptWait::Kind::Dialog;
+            wait.deadlineMs = nowMs + timeoutOf(words, 1, kDialogTimeoutMs);
+        } else if (command == "waitevent" || command == "skiptalk") {
+            wait.kind = command == "waitevent" ? ScriptWait::Kind::Event : ScriptWait::Kind::SkipTalk;
+            wait.deadlineMs = nowMs + timeoutOf(words, 1, kEventTimeoutMs);
+        } else if (command == "choose") {
+            std::string result;
+            if (words.size() < 2) {
+                core::logError("script: ERROR ", line, ": choose needs a choice number, Confirm, Cancel, Close or Next");
+            } else if (!probe) {
+                core::logError("script: ERROR ", line, ": this scene has no talk box");
+            } else if (!probe->get().answerTalk(words[1], result)) {
+                core::logError("script: ERROR ", line, ": ", result);
+            } else {
+                core::logInfo("script: ", line, " ok: ", result);
+            }
+            return true;
+        } else if (command == "button") {
+            if (words.size() < 2) {
+                core::logError("script: ERROR ", line, ": the button's name is missing");
+            } else if (!screen.isShown(words[1])) {
+                core::logError("script: ERROR ", line, ": no shown element named ", words[1]);
+            } else {
+                try {
+                    screen.get<ui::ImageButton>(words[1]).click(screen.context());
+                    core::logInfo("script: ", line, " ok");
+                } catch (const ui::LayoutError& error) {
+                    core::logError("script: ERROR ", line, ": ", error.what());
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
+        startWait(wait, nowMs, screen, probe);
+        return true;
     }
 
     void InputScript::typeText(ui::Screen& screen, const std::string& text) {
@@ -504,6 +582,52 @@ namespace client {
             case ScriptWait::Kind::Map: // waitmap: done when the player is on the map
                 if (probe && probe->get().mapId() == wait.number) {
                     result = "reached";
+                }
+                break;
+            case ScriptWait::Kind::Login: // login: hand the account to the login scene once it lists a server, then wait for the world
+                if (!wait.started) {
+                    const auto& login = m_host ? m_host->login : std::nullopt;
+                    if (login && login->get().hasServerRow()) {
+                        std::string reason;
+                        if (!login->get().startLogin(wait.text, wait.password, wait.number, reason)) {
+                            core::logError("script: ERROR ", wait.what, ": ", reason);
+                            m_wait.reset();
+                            return;
+                        }
+                        m_wait->started = true;
+                    }
+                } else if (m_host && m_host->worldReady && m_host->worldReady()) {
+                    result = "in the world";
+                }
+                break;
+            case ScriptWait::Kind::World: // waitworld: done when the world is loaded with the party in it
+                if (m_host && m_host->worldReady && m_host->worldReady()) {
+                    result = "loaded";
+                }
+                break;
+            case ScriptWait::Kind::Dialog: // waitdialog: done when the talk box can be answered
+                if (probe && probe->get().talkReady()) {
+                    result = "open";
+                }
+                break;
+            case ScriptWait::Kind::Event: // waitevent: done when the player's event no longer runs
+                if (probe && !probe->get().eventRunning()) {
+                    result = "ended";
+                }
+                break;
+            case ScriptWait::Kind::SkipTalk: // skiptalk: words are clicked away; done at a question or when the event is over
+                if (!probe) {
+                    break;
+                }
+                if (probe->get().talkReady()) {
+                    std::string answered;
+                    if (probe->get().answerTalk("Next", answered)) {
+                        ++m_wait->number;
+                    } else {
+                        result = "a box asks a question after " + std::to_string(wait.number) + " line(s)";
+                    }
+                } else if (!probe->get().eventRunning()) {
+                    result = "the event ended after " + std::to_string(wait.number) + " line(s)";
                 }
                 break;
         }

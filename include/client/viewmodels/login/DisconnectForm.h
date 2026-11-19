@@ -66,6 +66,11 @@ namespace client {
             /// @param at Origin of the drawing area.
             void paintCaptions(gfx::Canvas& canvas, core::Point at);
 
+            /// @brief Tells the services' errorShown hook (a test script ends there) what the form shows.
+            /// @param text The notice text.
+            void reportShown(const std::string& text);
+
+            GameServices& m_services;
             Hooks m_hooks;
             ui::Element& m_layer;
             ui::TextBox& m_text;

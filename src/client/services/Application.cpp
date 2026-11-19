@@ -241,9 +241,18 @@ namespace client {
             return written;
         }
 
-        /// @brief Logs an error and shows it in an operating system message box.
+        constexpr int kScriptErrorExit = 3; // exit code when an error box opened while a --script ran
+        constexpr int kScriptTimeoutExit = 4; // exit code when a --script ran past --script-timeout
+
+        bool scriptRuns = false; // a --script runs: errors are logged and end the program instead of waiting for a click on a box
+
+        /// @brief Logs an error and shows it in an operating system message box (only logs it while a test script runs).
         /// @param message The error text.
         void showError(const std::string& message) {
+            if (scriptRuns) {
+                core::logError("script: ERROR ", message);
+                return;
+            }
             core::logError(message);
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, kProgramTitle, message.c_str(), nullptr);
         }
@@ -251,6 +260,7 @@ namespace client {
     }
 
     int Application::run() {
+        scriptRuns = !m_options.scriptFile.empty();
         std::error_code ignored;
         if (!std::filesystem::is_directory(m_options.dataDirectory / "data", ignored)) {
 #ifdef SDL_PLATFORM_ANDROID
@@ -513,11 +523,18 @@ namespace client {
             audioDevice
         );
         std::optional<ExtraSettings> videoChange;
+        std::optional<std::string> scriptFailure;
         const auto setUpPlayed = [&](GameServices& services) {
             services.messageBox = [&script](const std::string& caption, const std::string& text) {
                 core::logInfo("message box: ", caption, " / ", text);
                 if (!script) {
                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, caption.c_str(), text.c_str(), nullptr);
+                }
+            };
+            services.errorShown = [&script, &scriptFailure](const std::string& text) {
+                if (script && !scriptFailure) {
+                    core::logError("script: ERROR ", text);
+                    scriptFailure = text;
                 }
             };
             services.saveScreenshot = [&photoRequest](const std::filesystem::path& file, const PhotoCheck& check) { photoRequest.emplace(file, check); };
@@ -625,10 +642,16 @@ namespace client {
                 }
             }
         };
+        int exitCode = 0;
         try {
             played->scene = makeScene(played->kind, played->services);
             applyView(*played->scene);
             bool running = true;
+            const std::uint64_t scriptStartMs = core::nowMs();
+            const auto worldReady = [&] {
+                return played->kind == SceneKind::World && static_cast<const WorldScene&>(*played->scene).inWorld() && party.started() &&
+                       party.allInWorld();
+            };
             while (running && played->scene) {
                 const std::uint64_t frameStart = std::max(core::nowMs(), clockFloorMs);
                 played->zoom.setNow(frameStart);
@@ -784,12 +807,23 @@ namespace client {
                         steered.screen(),
                         frameStart,
                         [&played](const core::Bytes& payload) { played->connection.inject(payload); },
-                        steered.scriptProbe()
+                        steered.scriptProbe(),
+                        InputScript::Host{played->scene->scriptLogin(), worldReady}
                     );
                     running = running && !script->wantsQuit();
                     if (const auto steps = script->takeCtrlWheel()) {
                         wheelZoom(*steps);
                     }
+                }
+                if (script && scriptFailure) {
+                    exitCode = kScriptErrorExit;
+                    running = false;
+                }
+                if (script && m_options.scriptTimeoutSeconds > 0 &&
+                    core::nowMs() - scriptStartMs > static_cast<std::uint64_t>(m_options.scriptTimeoutSeconds) * 1000) { // s to ms
+                    core::logError("script: ERROR the script ran longer than --script-timeout ", m_options.scriptTimeoutSeconds, " s");
+                    exitCode = kScriptTimeoutExit;
+                    running = false;
                 }
                 const double updateStart = core::nowPreciseMs();
                 sample.eventsMs = updateStart - frameStartPrecise;
@@ -971,6 +1005,10 @@ namespace client {
             stored.windowHeight = live.windowHeight;
             stored.maximized = live.maximized;
             stored.save(extraFile);
+        }
+        if (exitCode != 0) {
+            core::logInfo("closed by the script's failure, exit code ", exitCode);
+            return exitCode;
         }
         core::logInfo("closed normally");
         return 0;

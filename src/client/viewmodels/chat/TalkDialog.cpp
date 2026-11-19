@@ -407,6 +407,52 @@ namespace client {
         return true;
     }
 
+    bool TalkDialog::scriptAnswer(const std::string& what, std::string& result) {
+        if (!isReady()) {
+            result = isOpen() ? "the box is still opening" : "no talk box is open";
+            return false;
+        }
+        if (!what.empty() && what.size() < 4 && std::all_of(what.begin(), what.end(), [](char c) { return c >= '0' && c <= '9'; })) {
+            const int choice = std::stoi(what);
+            if (!m_onChoice || choice < 1 || choice > m_choices.itemCount()) {
+                result = "the box has " + std::to_string(m_onChoice ? m_choices.itemCount() : 0) + " choice(s)";
+                return false;
+            }
+            result = "choice " + what + " \"" + m_choices.itemText(choice - 1) + "\"";
+            pick(choice - 1);
+            return true;
+        }
+        const auto press = [&](ui::ImageButton& button, const std::function<void()>& run) {
+            if (!button.isVisible()) {
+                result = "the box shows no " + what + " button";
+                return false;
+            }
+            result = what;
+            run();
+            return true;
+        };
+        if (what == "Confirm") {
+            return press(m_ok, [this] { answer(true); });
+        }
+        if (what == "Cancel") {
+            return press(m_cancel, [this] { answer(false); });
+        }
+        if (what == "Close") {
+            return press(m_close, [this] { dismiss(); });
+        }
+        if (what == "Next") {
+            if (m_onOk || m_onCancel || m_onClose || m_onChoice) {
+                result = "the box waits for an answer, not a click";
+                return false;
+            }
+            result = "next";
+            clicked();
+            return true;
+        }
+        result = "not an answer: a choice number, Confirm, Cancel, Close or Next";
+        return false;
+    }
+
     void TalkDialog::pick(int choice) {
         const std::function<void(int)> handler = m_onChoice;
         finish();
