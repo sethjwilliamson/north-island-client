@@ -649,6 +649,10 @@ namespace client {
                        [] {},
                        TalkDialog::Timing{32, 5000, [] {}, false}
                    ); // Timing: wrap at 32 chars, time out after 5000 ms
+               },
+               [this](int bagSlot) {
+                   m_inventory.setLookItem(bagSlot, 0);
+                   inventoryChanged();
                }}
           ),
           m_packing(
@@ -2417,7 +2421,11 @@ namespace client {
                 m_messages.show("Unable to increase, your items have reached the upper limit.", 2000); // message display time in ms
                 break;
             }
-            const int added = m_inventory.addToBag(slot, rest);
+            protocol::ItemInstance one = rest;
+            if (!m_inventory.isStackable(item.itemId)) {
+                one.count = 1; // an item that does not stack takes a place of its own for each one, as the server puts it
+            }
+            const int added = m_inventory.addToBag(slot, one);
             if (added == 0) {
                 break;
             }
@@ -6002,7 +6010,7 @@ namespace client {
     }
 
     void WorldScene::openPartyLogin() {
-        if (m_services.partyLogIn && m_services.videoSettings().partyLogin) {
+        if (m_services.partyLogIn && m_services.videoSettings().partyLogin != ExtraSettings::PartyLogin::Off) {
             m_partyLogin.open();
         }
     }

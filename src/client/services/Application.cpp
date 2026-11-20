@@ -563,6 +563,13 @@ namespace client {
                 showError("cannot read the accounts file " + m_options.accountsFile.string() + (error.empty() ? "" : ": " + error));
                 return 1;
             }
+            if (live.partyLogin == ExtraSettings::PartyLogin::Simple && static_cast<int>(accounts->size()) > PartyMembers::kSimpleMembers) {
+                showError(
+                    "cannot read the accounts file " + m_options.accountsFile.string() + ": at most " + std::to_string(PartyMembers::kSimpleMembers) +
+                    " accounts go with the one played in Simple multi-login (Advanced takes any number)"
+                );
+                return 1;
+            }
             partyAccounts = *accounts;
         }
         PartyMembers party(played, audioDevice, setUpPlayed, std::move(partyAccounts));

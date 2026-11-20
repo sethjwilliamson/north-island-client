@@ -145,6 +145,15 @@ namespace client {
         return "windowed";
     }
 
+    const char* partyLoginName(ExtraSettings::PartyLogin mode) {
+        switch (mode) {
+            case ExtraSettings::PartyLogin::Simple: return "simple"; // at most 4 characters, the plain rows
+            case ExtraSettings::PartyLogin::Advanced: return "advanced"; // any number, the sliding panel
+            case ExtraSettings::PartyLogin::Off: break; // one character: falls to "off"
+        }
+        return "off";
+    }
+
     const char* speedupModeName(ExtraSettings::SpeedupMode mode) {
         switch (mode) {
             case ExtraSettings::SpeedupMode::Auto: return "auto"; // the recommended ones for the renderer
@@ -277,7 +286,18 @@ namespace client {
         }
         if (const auto game = root.find("game"); game != root.end() && game->is_object()) {
             readBool(*game, "sortButtons", settings.sortButtons);
-            readBool(*game, "partyLogin", settings.partyLogin);
+            if (const auto party = game->find("partyLogin"); party != game->end()) {
+                if (party->is_boolean()) {
+                    // the older on/off check box: on was the plain rows, now Simple
+                    settings.partyLogin = party->get<bool>() ? PartyLogin::Simple : PartyLogin::Off;
+                } else if (party->is_string()) {
+                    for (const auto known : {PartyLogin::Off, PartyLogin::Simple, PartyLogin::Advanced}) {
+                        if (party->get<std::string>() == partyLoginName(known)) {
+                            settings.partyLogin = known;
+                        }
+                    }
+                }
+            }
             readBool(*game, "modernBag", settings.modernBag);
         }
         if (const auto controller = root.find("controller"); controller != root.end() && controller->is_object()) {
@@ -333,7 +353,7 @@ namespace client {
             {"loadingSoundVolume", loadingSoundVolume},
             {"loadingSoundOn", loadingSoundOn}
         };
-        root["game"] = {{"sortButtons", sortButtons}, {"partyLogin", partyLogin}, {"modernBag", modernBag}};
+        root["game"] = {{"sortButtons", sortButtons}, {"partyLogin", partyLoginName(partyLogin)}, {"modernBag", modernBag}};
         root["controller"] = {
             {"enabled", controller.enabled},
             {"hideHud", controller.hideHud},

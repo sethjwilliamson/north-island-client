@@ -101,6 +101,9 @@ namespace formats {
             item.cellHeight = std::max(1, static_cast<int>(record.byteAt(413))); // record offset of the bag cell height
             item.petNpcId = record.wordAt(419); // record offset of the pet NPC id
             item.usePeriod = record.wordAt(427); // record offset of the use period (hours)
+            if (item.id == 34128) { // item 34128: Electron Control, a 30-day remote the file gives no period (the server's ItemTable.Patch)
+                item.usePeriod = 720; // 720 hours: 30 days, so it never stacks, as the server keeps it
+            }
             item.maxUses = record.wordAt(429); // record offset of the max uses
             item.aliasItemId = record.wordAt(431); // record offset of the alias item id
             item.shopPicId = record.wordAt(26); // record offset of the mall picture id

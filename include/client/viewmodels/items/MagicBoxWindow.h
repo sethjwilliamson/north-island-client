@@ -29,6 +29,7 @@ namespace client {
                 std::function<void()> marksChanged;
                 std::function<void(const core::Bytes&)> send;
                 std::function<void(const std::string&, std::function<void()>)> ask;
+                std::function<void(int bagSlot)> reverted; // the piece in a bag place is back to its own look
             };
 
             static constexpr int kMark = BagMarks::kMagicBox;
@@ -117,6 +118,7 @@ namespace client {
             const ui::Spot& m_countSpot;
             int m_boxSlot = 0;
             int m_bagSlot = 0;
+            int m_sentSlot = 0; // the piece's bag place in the request waiting for its answer
             bool m_requestSent = false;
             protocol::ItemInstance m_shown;
     };

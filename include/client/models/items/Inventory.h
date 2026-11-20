@@ -76,7 +76,8 @@ namespace client {
             /// @param count Number to take.
             void removeFromBag(int itemId, int count);
 
-            /// @brief Moves count items from one place to another.
+            /// @brief Moves count items from one place to another, as the server's 23/10 answer says: into an empty place or onto the same
+            /// item, or a whole stack swapped with a different item in the target.
             /// @details Original: MoveBagItemStack.
             /// @param fromSlot Source place.
             /// @param count Number to move.

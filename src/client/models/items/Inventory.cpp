@@ -81,14 +81,18 @@ namespace client {
         if (!validSlot(fromSlot, slots()) || !validSlot(toSlot, slots())) {
             return;
         }
-        const protocol::ItemInstance& from = m_bag[static_cast<std::size_t>(fromSlot)];
-        if (from.empty() || from.count < count) {
+        protocol::ItemInstance& from = m_bag[static_cast<std::size_t>(fromSlot)];
+        protocol::ItemInstance& to = m_bag[static_cast<std::size_t>(toSlot)];
+        if (from.empty() || from.count < count || fromSlot == toSlot) {
+            return;
+        }
+        if (!to.empty() && to.itemId != from.itemId) {
+            std::swap(from, to); // the server swaps a whole stack moved onto a different item
             return;
         }
         protocol::ItemInstance moved = from;
         moved.count = count;
-        addToBag(toSlot, moved);
-        takeFromBag(fromSlot, count);
+        takeFromBag(fromSlot, addToBag(toSlot, moved)); // only what the target took leaves the source
     }
 
     void Inventory::equip(const protocol::ItemInstance& item) {

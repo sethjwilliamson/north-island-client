@@ -186,10 +186,16 @@ namespace client {
             const bool checked = m_screen.get<ui::CheckBox>("SettingsSort").isChecked();
             changeVideo([checked](ExtraSettings& video) { video.sortButtons = checked; });
         });
-        screen.on("onSettingsPartyLogin", [this](const ui::EventArgs&) {
+        screen.on("onSettingsPartyLoginArrow", [this](const ui::EventArgs& args) {
+            // off, Simple, Advanced, round and round; arrow 1 is the left one
+            using Mode = ExtraSettings::PartyLogin;
+            static constexpr std::array<Mode, 3> kModes = {Mode::Off, Mode::Simple, Mode::Advanced};
             m_video = m_services.videoSettings();
-            const bool checked = m_screen.get<ui::CheckBox>("SettingsPartyLogin").isChecked();
-            changeVideo([checked](ExtraSettings& video) { video.partyLogin = checked; });
+            const int step = numberAfter(args.source, "SettingsPartyLoginArrow") == 1 ? -1 : 1;
+            const int count = static_cast<int>(kModes.size());
+            const int now = static_cast<int>(std::find(kModes.begin(), kModes.end(), m_video.partyLogin) - kModes.begin());
+            const Mode mode = kModes[static_cast<std::size_t>(((now + step) % count + count) % count)];
+            changeVideo([mode](ExtraSettings& video) { video.partyLogin = mode; });
         });
         screen.on("onSettingsPad", [this](const ui::EventArgs&) {
             m_video = m_services.videoSettings();
@@ -596,7 +602,10 @@ namespace client {
         m_screen.get<ui::Label>("SettingsPadSecondsValue")
             .setText(m_video.controller.hideSeconds == 0 ? "Start only" : std::to_string(m_video.controller.hideSeconds) + " seconds");
         m_screen.get<ui::CheckBox>("SettingsSort").setChecked(m_video.sortButtons);
-        m_screen.get<ui::CheckBox>("SettingsPartyLogin").setChecked(m_video.partyLogin);
+        m_screen.get<ui::Label>("SettingsPartyLoginValue")
+            .setText(m_video.partyLogin == ExtraSettings::PartyLogin::Simple     ? "Simple"
+                     : m_video.partyLogin == ExtraSettings::PartyLogin::Advanced ? "Advanced"
+                                                                                 : "Off");
         m_screen.get<ui::CheckBox>("SettingsModernBag").setChecked(m_video.modernBag);
         m_screen.get<ui::CheckBox>("SettingsPixelArtOnPictures").setChecked(m_video.pixelArtPictures);
         m_screen.get<ui::CheckBox>("SettingsPixelArtOnSprites").setChecked(m_video.pixelArtSprites);

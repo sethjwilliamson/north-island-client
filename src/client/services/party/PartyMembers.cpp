@@ -3,6 +3,7 @@
 #include "audio/MusicPlayer.h"
 #include "audio/SoundEffects.h"
 #include "client/rendering/hud/PartyPanels.h"
+#include "client/rendering/hud/SimplePartyPanels.h"
 #include "client/rendering/world/ViewZoom.h"
 #include "client/scenes/LoginScene.h"
 #include "client/scenes/world/WorldScene.h"
@@ -97,10 +98,6 @@ namespace client {
                 }
                 account.slot = *place;
             }
-            if (static_cast<int>(accounts.size()) == PartyMembers::kMostMembers) {
-                error = "at most " + std::to_string(PartyMembers::kMostMembers) + " accounts go with the one played";
-                return std::nullopt;
-            }
             accounts.push_back(std::move(account));
         }
         return accounts;
@@ -150,7 +147,8 @@ namespace client {
         : m_played(playedBundle),
           m_device(device),
           m_setUpPlayed(std::move(playedHooks)),
-          m_panels(std::make_unique<PartyPanels>(played().pictures, played().characters)) {
+          m_panels(std::make_unique<PartyPanels>(played().pictures, played().characters)),
+          m_simplePanels(std::make_unique<SimplePartyPanels>(played().pictures, played().characters)) {
         for (PartyAccount& account : accounts) {
             m_members.push_back(std::make_unique<Member>(GameTables::of(played()), m_silent, std::move(account)));
             setUpMember(*m_members.back());
@@ -400,8 +398,8 @@ namespace client {
         if (taken) {
             return "That account is logged in already.";
         }
-        if (heldRows() >= kMostMembers) {
-            return "At most " + std::to_string(kMostMembers + 1) + " characters can be logged in.";
+        if (played().videoSettings().partyLogin == ExtraSettings::PartyLogin::Simple && heldRows() >= kSimpleMembers) {
+            return "At most " + std::to_string(kSimpleMembers + 1) + " characters can be logged in (Advanced multi-login takes more).";
         }
         m_members.push_back(std::make_unique<Member>(GameTables::of(played()), m_silent, std::move(account)));
         setUpMember(*m_members.back());
@@ -652,10 +650,16 @@ namespace client {
     }
 
     bool PartyMembers::loginRowShown() const {
-        if (!played().videoSettings().partyLogin || m_played->kind != SceneKind::World || !m_played->scene) {
+        const ExtraSettings::PartyLogin mode = played().videoSettings().partyLogin;
+        if (mode == ExtraSettings::PartyLogin::Off || m_played->kind != SceneKind::World || !m_played->scene) {
             return false;
         }
-        return static_cast<const WorldScene&>(*m_played->scene).inWorld() && heldRows() < kMostMembers;
+        return static_cast<const WorldScene&>(*m_played->scene).inWorld() && (mode == ExtraSettings::PartyLogin::Advanced || heldRows() < kSimpleMembers);
+    }
+
+    bool PartyMembers::simpleRows() const {
+        // off too (members of an --accounts file still show): the rows as they were before Advanced
+        return played().videoSettings().partyLogin != ExtraSettings::PartyLogin::Advanced && heldRows() <= kSimpleMembers;
     }
 
     void PartyMembers::drawPanels(gfx::Canvas& canvas, float hudScale, const WorldScene& playedWorld, const ui::Screen& shown, std::uint64_t nowMs) {
@@ -666,9 +670,48 @@ namespace client {
         // a window of the shown screen (a shop, the globe, mail) or what one of its popups takes the mouse on (the talk box, the
         // maid's menu, an item or pet info box) under a row keeps that row out of sight and its clicks
         const auto covered = [&shown](const core::Rect& box) { return shown.windowOver(box, isPopupLayout); };
+        if (simpleRows()) {
+            m_simplePanels->draw(
+                canvas,
+                views(),
+                loginRow,
+                playedWorld.inBattle(),
+                playedWorld.vehicleGaugeShown(),
+                m_played->scene->screen().view(),
+                hudScale,
+                m_mouse,
+                nowMs,
+                covered
+            );
+            return;
+        }
+        std::vector<PartyMemberView> rows = views();
+        if (playedWorld.inWorld()) {
+            // the selected character's own row, after the members' (index size()): first, in its team's group when other own
+            // characters are in it, so that a team of own characters looks the same whichever of them is selected
+            PartyMemberView played;
+            const PlayerStatus& status = playedWorld.ownStatus();
+            played.played = true;
+            played.account = m_played->session.loginName;
+            played.state = playedWorld.inBattle() ? PartyMemberView::State::InBattle : PartyMemberView::State::InWorld;
+            played.name = playedWorld.ownName();
+            played.id = playedWorld.ownId();
+            played.element = status.element;
+            played.job = status.job;
+            played.look = playedWorld.ownLook();
+            played.level = status.level;
+            played.hp = status.hp;
+            played.maxHp = status.maxHp;
+            played.sp = status.sp;
+            played.maxSp = status.maxSp;
+            const auto team = playedWorld.teams().leaderOf(played.id);
+            played.inTeam = team.has_value();
+            played.leaderId = team.value_or(0);
+            rows.push_back(std::move(played));
+        }
         m_panels->draw(
             canvas,
-            views(),
+            rows,
             loginRow,
             playedWorld.inBattle(),
             playedWorld.vehicleGaugeShown(),
@@ -682,7 +725,8 @@ namespace client {
 
     bool PartyMembers::handleRowButton(const SDL_Event& event, core::Point origin) {
         if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
-            // only the release of the button pressed on a row is taken: the other button's goes on to the screen
+            m_panels->release();
+            // only the release of the button pressed on the panel is taken: the other button's goes on to the screen
             if (m_panelButton == 0 || event.button.button != m_panelButton) {
                 return false;
             }
@@ -696,15 +740,29 @@ namespace client {
         const core::Point point{static_cast<int>(event.button.x) - origin.x, static_cast<int>(event.button.y) - origin.y};
         const bool left = event.button.button == SDL_BUTTON_LEFT;
         WorldScene& playedWorld = static_cast<WorldScene&>(*m_played->scene);
-        if (m_panels->loginRowAt(point) && loginRowShown()) {
+        const bool simple = simpleRows();
+        if ((simple ? m_simplePanels->loginRowAt(point) : m_panels->loginRowAt(point)) && loginRowShown()) {
             m_panelButton = event.button.button;
             if (left) {
+                if (!simple) {
+                    played().playSound("sound/wav0151.wav"); // the Login button clicks as every button does (ImageButton's wav0151)
+                }
                 playedWorld.openPartyLogin();
             }
             return true;
         }
-        const int pressed = m_panels->memberAt(point);
+        const int pressed = simple ? m_simplePanels->memberAt(point) : m_panels->memberAt(point);
+        if (pressed == size()) {
+            // the selected character's own row (in its team's group): selected already, nothing to do
+            m_panelButton = event.button.button;
+            return true;
+        }
         if (pressed < 0 || pressed >= size()) {
+            // off the rows: the panel's arrows and scroll bar, or only taken on the panel (Advanced)
+            if (!simple && m_panels->press(point, left)) {
+                m_panelButton = event.button.button;
+                return true;
+            }
             return false;
         }
         m_panelButton = event.button.button;
@@ -808,10 +866,26 @@ namespace client {
         }
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
             m_mouse = core::Point{static_cast<int>(event.motion.x) - origin.x, static_cast<int>(event.motion.y) - origin.y};
+            if (!simpleRows() && m_panels->dragging()) {
+                m_panels->drag(*m_mouse); // the panel's scroll bar thumb
+                return true;
+            }
         }
         if ((event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
             (event.button.button == SDL_BUTTON_LEFT || event.button.button == SDL_BUTTON_RIGHT) && handleRowButton(event, origin)) {
             return true;
+        }
+        if (event.type == SDL_EVENT_MOUSE_WHEEL && m_played->kind == SceneKind::World && m_played->scene) {
+            // the wheel over the panel scrolls its rows (when some are out of sight), before the windows under it get it
+            const core::Point point{static_cast<int>(event.wheel.mouse_x) - origin.x, static_cast<int>(event.wheel.mouse_y) - origin.y};
+            if (!simpleRows() && m_panels->panelAt(point)) {
+                if (event.wheel.y > 0) {
+                    m_panels->scrollBy(-1);
+                } else if (event.wheel.y < 0) {
+                    m_panels->scrollBy(1);
+                }
+                return true;
+            }
         }
         if (memberShown) {
             return false;
@@ -1071,6 +1145,7 @@ namespace client {
                 const AccountSession& session = m_played->session;
                 const auto team = world.teams().leaderOf(world.ownId());
                 view.inTeam = team && session.ownPlayer && world.teams().leaderOf(session.ownPlayer->playerId) == team;
+                view.leaderId = team.value_or(0);
                 // its commands are due in a battle other than the shown one (or the selected character fights none): its row blinks until they are given
                 view.attention = world.battleActor() != 0 && !inShownBattle(world);
             }

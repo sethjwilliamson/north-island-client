@@ -306,7 +306,7 @@ namespace client {
         m_memberIds.fill(0);
         m_leave.setVisible(leader.has_value());
         const bool mirrors = m_services.partyMirrorsNpcs && m_services.partyMirrorsNpcs();
-        m_partyMirrorButton.setVisible(m_services.partyMirrorsNpcs && m_services.videoSettings().partyLogin);
+        m_partyMirrorButton.setVisible(m_services.partyMirrorsNpcs && m_services.videoSettings().partyLogin != ExtraSettings::PartyLogin::Off);
         m_partyMirrorButton.setText(mirrors ? "Mirror on" : "Mirror off");
         m_partyMirrorButton.setSelected(mirrors);
         for (MateRow& row : m_mateRows) {

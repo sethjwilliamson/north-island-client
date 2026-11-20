@@ -140,6 +140,7 @@ namespace client {
             return;
         }
         m_hooks.send(protocol::magicBoxRequest(m_boxSlot, m_bagSlot));
+        m_sentSlot = m_bagSlot;
         m_requestSent = true;
         close();
     }
@@ -147,6 +148,10 @@ namespace client {
     void MagicBoxWindow::result(int code) {
         // result codes: 3 the look is back, 4 it failed
         if (code == 3 || code == 4) {
+            if (code == 3 && m_sentSlot != 0 && m_hooks.reverted) {
+                m_hooks.reverted(m_sentSlot); // the server has cleared the pose: the piece shows and trades as itself again
+            }
+            m_sentSlot = 0;
             m_messages.show(code == 3 ? "Pose Reverted " : "Pose Reverted Failed", 3000); // message display time in ms
             reset();
         }

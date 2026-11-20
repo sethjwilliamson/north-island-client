@@ -27,6 +27,10 @@ namespace client {
         /// @brief Which speedups run: none, the recommended ones for the renderer, or the player's own choice.
         enum class SpeedupMode { None, Auto, Custom };
 
+        /// @brief Several own characters on one client ("partyLogin" in the file): off; Simple, at most 4 characters and the
+        /// plain rows (SimplePartyPanels); Advanced, any number and the sliding panel with grouped teams (PartyPanels).
+        enum class PartyLogin { Off, Simple, Advanced };
+
         /// @brief Play with a game pad ("controller" in the file).
         struct Controller {
             bool enabled = controllerOnByDefault(); // game pads are looked for and used
@@ -81,7 +85,7 @@ namespace client {
         int loadingSoundVolume = -1; // -1: full loudness as the original
         bool loadingSoundOn = true;
         bool sortButtons = false;
-        bool partyLogin = false;
+        PartyLogin partyLogin = PartyLogin::Off;
         bool modernBag = false; // things in the bag and Storeroom move as in Minecraft: a click carries a stack, a right click takes half or puts one down, a held button spreads, Shift quick-moves
 #ifdef __ANDROID__
         SpeedupMode speedupMode = SpeedupMode::Auto; // a phone starts with the recommended speedups
@@ -157,6 +161,11 @@ namespace client {
     /// @param renderer The renderer's name.
     /// @return The speedups.
     core::Speedups recommendedSpeedups(const std::string& renderer);
+
+    /// @brief Gives the name of a multi-login mode as written in the settings file.
+    /// @param mode The mode.
+    /// @return "off", "simple" or "advanced".
+    const char* partyLoginName(ExtraSettings::PartyLogin mode);
 
     /// @brief Gives the name of a speedup mode as written in the settings file.
     /// @param mode The mode.

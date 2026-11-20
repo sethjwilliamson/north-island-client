@@ -32,7 +32,7 @@ namespace client {
         bool operator==(const PartyAccount& other) const { return account == other.account && password == other.password && slot == other.slot; }
     };
 
-    /// @brief Parses the --accounts file: "account password [place]" a line; blank and # lines are skipped; at most kMostMembers accounts.
+    /// @brief Parses the --accounts file: "account password [place]" a line; blank and # lines are skipped; any number of accounts.
     /// @details An "auto" or "manual" word after the place (older files) is accepted and ignored: members always take manual battle commands.
     /// @param lines The lines of the file.
     /// @param error Receives what is wrong with the file (nothing is returned then).
@@ -57,6 +57,8 @@ namespace client {
         std::optional<CharacterLook> look;
         std::string reason;
         bool inTeam = false; // in the selected character's team
+        std::int32_t leaderId = 0; // its team's leader (its own world's Teams), 0 while in no team
+        bool played = false; // the selected character itself: its row shows first (in its team's group with other own characters)
         bool commanding = false; // its battle commands are given now, in the played account's place
         bool attention = false; // its battle commands are due in a battle other than the shown one, or while the selected character fights none (a blinking outline)
     };
@@ -76,14 +78,16 @@ namespace client {
     };
 
     class PartyPanels;
+    class SimplePartyPanels;
     class Scene;
     class WorldScene;
 
-    /// @brief The qol client's several own characters at once (up to kMostMembers + 1): the selected one is the played account (drawn, steered,
+    /// @brief The qol client's several own characters at once (at most kSimpleMembers + 1 in Simple multi-login, any number in
+    /// Advanced): the selected one is the played account (drawn, steered,
     /// with the sound and its HUD), the others ("members") run their login and world scenes unseen and show as the party rows.
     /// @details There is no leader on the client side: team leadership is only the server's (WorldScene::teams()). The first account of
     /// --accounts is only the one shown at start; a click on a member's row swaps it with the played account (select), in the world
-    /// or in battle; a right click asks to log it out, and the "+" row after the rows logs another account in. A member follows
+    /// or in battle; a right click asks to log it out, and the login button under the rows logs another account in. A member follows
     /// from its login: while it is not in a team it is invited into the selected character's team (13/7, by that team's leader when it
     /// is an own character) when on its map, until it has been in a team and left it. Own characters accept each other's team
     /// invitations and lead. A ground click of a character in a team led by another own character walks that leader (walkToLeader); a
@@ -94,7 +98,7 @@ namespace client {
     /// the whisper and team chat relay, the NPC mirror and the services' log in/out hooks (WorldScene::openPartyLogin, askPartyLogOut).
     class PartyMembers {
         public:
-            static constexpr int kMostMembers = 3; // most members (extra accounts) in the party
+            static constexpr int kSimpleMembers = 3; // most members (extra accounts) in Simple multi-login: 4 characters with the played one
 
             /// @brief Sets up the members' accounts (not yet logged in).
             /// @param played The played account's bundle, which the members share tables and settings of and which a member's swaps with when it is selected.
@@ -167,7 +171,7 @@ namespace client {
             /// @param hudScale The HUD scale.
             void drawWindows(gfx::Canvas& canvas, std::uint64_t nowMs, float hudScale);
 
-            /// @brief Draws the members' rows under the own status, and the "+" row while another account can log in (PartyPanels).
+            /// @brief Draws the members' rows under the own status, and the login button while another account can log in (PartyPanels).
             /// @param canvas The canvas, at the game screen's origin.
             /// @param hudScale The HUD scale.
             /// @param playedWorld The played account's world scene (in a battle the rows go higher).
@@ -177,7 +181,7 @@ namespace client {
             void drawPanels(gfx::Canvas& canvas, float hudScale, const WorldScene& playedWorld, const ui::Screen& shown, std::uint64_t nowMs);
 
             /// @brief Handles an input event for the members: a click on a member's row (select; with Ctrl, the last used window moves to
-            /// it: moveLastWindowTo; with Alt, it leads its team and is selected: leadAndSelect), on the "+" row (WorldScene::openPartyLogin),
+            /// it: moveLastWindowTo; with Alt, it leads its team and is selected: leadAndSelect), on the login button (WorldScene::openPartyLogin),
             /// a right click on a member's row (WorldScene::askPartyLogOut; a gone member's row goes), the mouse over a member's window,
             /// typing into a member's text box.
             /// @details Both buttons' presses and releases on the rows are taken, so nothing under the rows (a right-click menu) sees them.
@@ -204,8 +208,9 @@ namespace client {
             /// without team data, so its following's team watch starts over.
             void playedSceneChanged() { m_playedFollowing.wasInTeam = false; }
 
-            /// @brief Adds another member (the login form of WorldScene::openPartyLogin), refused while kMostMembers hold a row (heldRows:
-            /// members logging out count until they have left); rows of members that could not log in go.
+            /// @brief Adds another member (the login form of WorldScene::openPartyLogin), refused in Simple multi-login while
+            /// kSimpleMembers hold a row (heldRows: members logging out count until they have left); rows of members that could not
+            /// log in go.
             /// @param account The account to log in.
             /// @return Empty, or why the account cannot be added.
             std::string add(PartyAccount account);
@@ -281,8 +286,8 @@ namespace client {
             /// @return The number of members.
             int heldRows() const;
 
-            /// @brief Tells whether the "+" row shows: multi-login on, the played account in the world and fewer than kMostMembers
-            /// members holding a row (heldRows), so that at most kMostMembers + 1 rows show.
+            /// @brief Tells whether the login button (Advanced) or the "+" row (Simple) shows: multi-login on, the played account in
+            /// the world and, in Simple, fewer than kSimpleMembers members holding a row (heldRows).
             /// @return True when it shows.
             bool loginRowShown() const;
 
@@ -415,7 +420,13 @@ namespace client {
             bool m_mirrorNpcs = false;
             std::vector<const ui::Element*> m_heldLayouts; // the played screen's layouts holdPlayedPopups kept for drawWindows
             int m_pendingSelect = -1; // row asked for by select, swapped in by applySelection
-            std::unique_ptr<PartyPanels> m_panels;
+            std::unique_ptr<PartyPanels> m_panels; // the Advanced panel
+            std::unique_ptr<SimplePartyPanels> m_simplePanels; // the Simple rows
+
+            /// @brief Tells whether the Simple rows show: Simple multi-login (or off) with at most kSimpleMembers members holding a
+            /// row (more, logged in under Advanced, keep the Advanced panel until they are down to that).
+            /// @return True for the Simple rows.
+            bool simpleRows() const;
             std::vector<PartyMessage> m_messages;
             std::uint8_t m_panelButton = 0; // the SDL mouse button pressed on a row, whose release is taken too; 0 for none
             std::optional<core::Point> m_mouse;

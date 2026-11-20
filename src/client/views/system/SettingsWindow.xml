@@ -52,7 +52,12 @@
             <Label Name="SettingsSortText" Position="16,34" Text="Sort button in item windows" Effect="Shadow"/>
             <CheckBox Name="SettingsSort" Picture="btn_UnCheck_1" CheckedPicture="btn_Check_1" Position="326,33" Click="onSettingsSort"/>
             <Label Name="SettingsPartyLoginText" Position="16,62" Text="Log in more accounts" Effect="Shadow"/>
-            <CheckBox Name="SettingsPartyLogin" Picture="btn_UnCheck_1" CheckedPicture="btn_Check_1" Position="326,61" Click="onSettingsPartyLogin"/>
+            <!-- off, Simple (at most 4 characters, the plain rows) or Advanced (any number, the sliding panel with grouped teams) -->
+            <ImageButton Name="SettingsPartyLoginArrow1" Picture="Btn_ArrowL_4" Position="184,60" Click="onSettingsPartyLoginArrow"/>
+            <Panel Name="SettingsPartyLoginField" Bounds="204,58,124,21" Skin="panel16" SkinSource="0,0,120,21" Borders="4,4,4,4">
+              <Label Name="SettingsPartyLoginValue" Bounds="0,4,124,15" Align="Center" FontColor="#1E3C78" Effect="Plain"/>
+            </Panel>
+            <ImageButton Name="SettingsPartyLoginArrow2" Picture="Btn_ArrowR_4" Position="330,60" Click="onSettingsPartyLoginArrow"/>
             <!-- the modern way of moving things: the left button carries the whole stack, the right one puts one down or takes half -->
             <Label Name="SettingsModernBagText" Position="16,90" Text="Modern item dragging" Effect="Shadow"/>
             <CheckBox Name="SettingsModernBag" Picture="btn_UnCheck_1" CheckedPicture="btn_Check_1" Position="326,89" Click="onSettingsModernBag"/>
