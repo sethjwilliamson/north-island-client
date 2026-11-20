@@ -91,6 +91,18 @@ namespace gfx {
                 }
             }
             m_spot.reset(makeTexture(renderer, kSpotSize, pixels, SDL_BLENDMODE_ADD));
+            // the fall-off in the colour: what is there + what is there x the light, so a light brightens the picture's own colours
+            for (std::uint32_t& pixel : pixels) {
+                const std::uint32_t inside = pixel >> 24;
+                pixel = 0xFF000000u | (inside << 16) | (inside << 8) | inside;
+            }
+            const SDL_BlendMode brighten = SDL_ComposeCustomBlendMode(
+                SDL_BLENDFACTOR_DST_COLOR, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD, SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD
+            );
+            m_spotLit.reset(makeTexture(renderer, kSpotSize, pixels, SDL_BLENDMODE_ADD));
+            if (m_spotLit && !SDL_SetTextureBlendMode(m_spotLit.get(), brighten)) {
+                m_spotLit.reset(); // the glow is added as the light's colour instead
+            }
         }
         if (!m_pattern) {
             std::vector<std::uint32_t> pixels(static_cast<std::size_t>(kPatternSize) * kPatternSize);
@@ -406,9 +418,10 @@ namespace gfx {
         const std::vector<Sprite>& sprites,
         const Tone& tone,
         core::Point paintedAt,
-        bool leavePainted
+        bool leavePainted,
+        const std::vector<SDL_Vertex>& solids
     ) {
-        if (m_failed || !device.isAccelerated() || (shadows.empty() && sprites.empty()) || area.width <= 0 || area.height <= 0) {
+        if (m_failed || !device.isAccelerated() || (shadows.empty() && sprites.empty() && solids.empty()) || area.width <= 0 || area.height <= 0) {
             return;
         }
         if (!m_blob && !prepare(device, {kCoarse, kCoarse})) {
@@ -446,6 +459,17 @@ namespace gfx {
             SDL_RenderTextureRotated(renderer, m_blob.get(), nullptr, &to, static_cast<double>(shadow.degrees), nullptr, SDL_FLIP_NONE);
         }
         drawShapes(renderer, sprites.data(), sprites.size(), true);
+        if (!solids.empty()) {
+            // the darker of what is there and the triangle: a thing's parts overlap without getting darker
+            static const SDL_BlendMode darkest = SDL_ComposeCustomBlendMode(
+                SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_MINIMUM, SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_MINIMUM
+            );
+            if (!SDL_SetRenderDrawBlendMode(renderer, darkest)) {
+                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE); // they cover what is there instead
+            }
+            SDL_RenderGeometry(renderer, nullptr, solids.data(), static_cast<int>(solids.size()), nullptr, 0);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        }
         if (m_painted && leavePainted) { // white again where the picture is in painted shade
             float cellsAcross = 0;
             float cellsDown = 0;
@@ -555,13 +579,23 @@ namespace gfx {
         const SDL_FRect part{0, 0, static_cast<float>(area.width) / kCoarse, static_cast<float>(area.height) / kCoarse};
         SDL_RenderTexture(renderer, m_map.get(), &part, &whole);
         if (frame.glow > 0) {
+            // the part that brightens the picture by its own colour: added light makes it paler (its colours run to white), this
+            // keeps them as they are, only brighter. It is stronger, since on the dark parts it adds little
+            constexpr float kVividTimes = 2.5f;
+            const float vivid = m_spotLit ? std::clamp(frame.vivid, 0.0f, 1.0f) : 0.0f;
             for (const Light& light : frame.lights) {
                 if (!light.glows) {
                     continue;
                 }
                 const SDL_FRect to{static_cast<float>(light.at.x - light.radius), static_cast<float>(light.at.y - light.radius), static_cast<float>(light.radius * 2), static_cast<float>(light.radius * 2)};
-                mod(m_spot.get(), light.tone, frame.glow);
-                SDL_RenderTexture(renderer, m_spot.get(), nullptr, &to);
+                if (vivid < 1) {
+                    mod(m_spot.get(), light.tone, frame.glow * (1 - vivid));
+                    SDL_RenderTexture(renderer, m_spot.get(), nullptr, &to);
+                }
+                if (vivid > 0) {
+                    mod(m_spotLit.get(), light.tone, frame.glow * vivid * kVividTimes);
+                    SDL_RenderTexture(renderer, m_spotLit.get(), nullptr, &to);
+                }
             }
         }
         return true;

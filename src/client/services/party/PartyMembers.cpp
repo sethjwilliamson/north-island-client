@@ -717,6 +717,8 @@ namespace client {
         }
         if (left && (SDL_GetModState() & SDL_KMOD_CTRL) != 0) {
             moveLastWindowTo(pressed);
+        } else if (left && (SDL_GetModState() & SDL_KMOD_SHIFT) != 0) {
+            moveWindowsAndSelect(pressed);
         } else if (left && (SDL_GetModState() & SDL_KMOD_ALT) != 0) {
             leadAndSelect(pressed);
         } else if (left) {
@@ -760,6 +762,26 @@ namespace client {
         }
         owner->closeMovableWindow(last->key);
         core::logInfo("party: the ", last->key, " window of ", owner->ownName(), " moved to ", targetWorld.ownName());
+    }
+
+    void PartyMembers::moveWindowsAndSelect(int index) {
+        const Member& target = *m_members[static_cast<std::size_t>(index)];
+        WorldScene* source = worldOf(played());
+        if (source != nullptr && source->inWorld() && target.world && !target.leavingSinceMs && target.world->get().inWorld()) {
+            WorldScene& targetWorld = target.world->get();
+            if (source != &targetWorld) {
+                for (const WorldScene::MovableWindow& window : source->openWindows()) {
+                    // opened on the clicked character first: a window that can't open there stays where it is
+                    if (!targetWorld.openMovableWindow(window.key, window.position)) {
+                        core::logInfo("party: the ", window.key, " window cannot open for ", targetWorld.ownName(), " now");
+                        continue;
+                    }
+                    source->closeMovableWindow(window.key);
+                    core::logInfo("party: the ", window.key, " window of ", source->ownName(), " moved to ", targetWorld.ownName());
+                }
+            }
+        }
+        select(index);
     }
 
     void PartyMembers::leadAndSelect(int index) {

@@ -51,12 +51,13 @@ namespace client {
             bool clouds = true; // the drifting shade of clouds and leaves
             bool air = true; // specks in the air, shafts of light, glints on water
             bool occlusion = true; // the ground is darker right where a figure or an object stands on it
+            bool shadows3d = false; // figures' shadows are cast from a rough 3D shape worked out of their sprites (else from the flat sprites)
 
             /// @brief Compares all settings.
             /// @param other The settings to compare with.
             /// @return True when every setting matches.
             bool operator==(const Lighting& other) const {
-                return enabled == other.enabled && shadows == other.shadows && clouds == other.clouds && air == other.air && occlusion == other.occlusion;
+                return enabled == other.enabled && shadows == other.shadows && clouds == other.clouds && air == other.air && occlusion == other.occlusion && shadows3d == other.shadows3d;
             }
         };
 

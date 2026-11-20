@@ -5852,7 +5852,7 @@ namespace client {
             }
         };
         const bool zoomed = canvas.isZooming();
-        const auto light = [&](gfx::Canvas& lit) { m_lighting.apply(lit, m_services.pictures, *m_map, m_camera, sceneType(), characters, nowMs); };
+        const auto light = [&](gfx::Canvas& lit) { m_lighting.apply(lit, m_services.pictures, *m_map, m_camera, sceneType(), characters, m_npcs, nowMs); };
         display.beforeLabels = light; // the names and what lies over the people keep their own colours
         if (zoomed) {
             display.beforeLabels = [&](gfx::Canvas& zoomedCanvas) {

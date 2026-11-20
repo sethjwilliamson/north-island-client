@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -61,6 +62,7 @@ namespace client {
             /// @param camera Camera of the view.
             /// @param sceneType The scene's type.
             /// @param players The players on the map, the own one first.
+            /// @param npcs The NPCs on the map (those that burn, as the look's 'npcLights' says, give light).
             /// @param nowMs Current time in milliseconds.
             void apply(
                 gfx::Canvas& canvas,
@@ -69,6 +71,7 @@ namespace client {
                 const Camera& camera,
                 int sceneType,
                 const std::vector<std::reference_wrapper<MapCharacter>>& players,
+                const std::vector<MapNpc>& npcs,
                 std::uint64_t nowMs
             );
 
@@ -113,6 +116,7 @@ namespace client {
                 gfx::LightMap::Tone tone;
                 int radius = 0;
                 float strength = 0;
+                float flicker = -1; // how far its size wavers, 0 to 1; under 0: as the look's 'flicker' says
             };
 
             /// @brief How a map is lit.
@@ -132,6 +136,8 @@ namespace client {
                 Source object;
                 float flicker = 0; // how far a light's size wavers, 0 to 1
                 float glow = 0;
+                float vivid = 0; // how much of the glow brightens the picture's own colours instead of adding the light's, 0 to 1
+                std::map<int, gfx::LightMap::Tone> npcLights; // the NPCs that burn (by Npc.dat id): lit as the objects, in their colour
                 float shadows = 0; // how much of the shadow a figure casts shows, 0 to 1
                 float shadowLength = 80; // a figure's, px
                 float shadowWidth = 22; // a figure's, px
@@ -220,26 +226,36 @@ namespace client {
             int m_paintedWidth = 0;
             int m_paintedHeight = 0;
             int m_paintedCell = 1;
-            /// @brief The shadow the lighting casts for a thing (a tree), as it lies on the screen in this frame.
-            struct ThingShadow {
-                core::Point feet; // where the thing stands
-                float leanX = 0; // where the shadow of a point a pixel over the feet falls, from the feet
-                float leanY = 0;
-                float acrossX = 1; // and that of a point a pixel right of them
-                float acrossY = 0;
-                float strength = 0;
-                gfx::PictureId picture;
-                core::Point at; // where the picture's frame stands on the screen
-                int frameTop = 0;
+            /// @brief A part of a shadow cast in this frame by a figure or a thing, kept so that what stands in it is darkened too.
+            struct CastPart {
+                gfx::LightMap::Sprite sprite; // as it was laid on the ground
+                core::Point owner; // the feet of what cast it: it is not darkened by its own shadow
+                SDL_FRect bounds{}; // where on the ground it lies
             };
 
-            /// @brief How much of a thing's shadow lies on a point of the ground.
-            /// @param pictures Picture library.
-            /// @param ground The point on the screen.
-            /// @return 0 (none) to 1.
-            float thingShadeAt(gfx::PictureLibrary& pictures, core::Point ground) const;
+            /// @brief Where the shadow of a point a pixel high falls, for a figure or a thing standing at a point of the screen.
+            struct Lean {
+                core::Point feet;
+                float x = 0;
+                float y = 0;
+            };
 
-            std::vector<ThingShadow> m_thingShadows;
+            /// @brief How much of the shadows cast by the other figures and things falls on a point of what stands at a place.
+            /// @param feet Where it stands, on the screen.
+            /// @param high How high the point is over the feet, px.
+            /// @param leanX Where the shadow of a point a pixel high falls there, from under it.
+            /// @param leanY The same, up and down.
+            /// @return 0 (none) to 1.
+            float castShadeAt(core::Point feet, float high, float leanX, float leanY) const;
+
+            /// @brief Where the shadow of a point a pixel high falls for what stands at a point of the screen in this frame.
+            /// @param feet Where it stands.
+            /// @param x Set to it, across.
+            /// @param y Set to it, up and down.
+            void leanAt(core::Point feet, float& x, float& y) const;
+
+            std::vector<CastPart> m_castParts; // the shadows cast in this frame
+            std::vector<Lean> m_leans; // how the shadows fall for each figure and thing of this frame
             FigureEcho m_lastFigures; // the figures of the frame before: their shadows are cast before they are drawn again
             core::Point m_lastMapAt; // where the map's top left was then
             bool m_lastValid = false;

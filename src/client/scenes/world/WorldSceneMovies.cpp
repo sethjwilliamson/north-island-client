@@ -72,7 +72,7 @@ namespace client {
                 }
                 return;
             }
-            m_lighting.apply(canvas, m_services.pictures, *m_movieMap, camera, type, characters, nowMs);
+            m_lighting.apply(canvas, m_services.pictures, *m_movieMap, camera, type, characters, {}, nowMs);
             hideFigureShadows(false);
             endFigureEcho(canvas.device());
         };

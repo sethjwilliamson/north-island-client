@@ -116,7 +116,7 @@ namespace client {
             void menu(int number);
 
             /// @brief Steps one of the Video tab's choices.
-            /// @param number The Video arrow number (1..20, two per row).
+            /// @param number The Video arrow number (1..22, two per row).
             void videoArrow(int number);
 
             /// @brief Takes a speedup's check box (a restart applies it); from None or Auto this makes what was shown the player's own choice.
@@ -190,6 +190,11 @@ namespace client {
             /// @param now The current video settings (unused).
             /// @return The choices.
             std::vector<VideoChoice> displayChoices(const ExtraSettings& now) const;
+
+            /// @brief The choices of the figures' shadows: Off, 2D (from the flat sprites) and 3D (from a rough solid shape).
+            /// @param now The current settings.
+            /// @return The choices.
+            std::vector<VideoChoice> shadowChoices(const ExtraSettings& now) const;
 
             /// @brief The HUD size choices.
             /// @param now The current video settings (unused).

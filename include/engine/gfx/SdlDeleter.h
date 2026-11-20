@@ -41,6 +41,8 @@ namespace gfx {
         return freed;
     }
 
+    void forgetSpriteShape(SDL_Texture* texture); // gfx/SpriteShapes.h
+
     /// @brief Deleter that releases SDL objects so they can live in std::unique_ptr.
     struct SdlDeleter {
         /// @brief Destroys a window.
@@ -60,6 +62,7 @@ namespace gfx {
             } else {
                 freed.all = true;
             }
+            forgetSpriteShape(texture);
             SDL_DestroyTexture(texture);
         }
 

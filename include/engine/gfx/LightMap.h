@@ -45,6 +45,7 @@ namespace gfx {
                 core::Point shadeAt2;
                 std::vector<Light> lights;
                 float glow = 0; // how much of each light is also added onto the picture itself, 0 to 1
+                float vivid = 0; // how much of the glow brightens the picture's own colours (instead of adding the light's), 0 to 1
                 float corners = 0; // how dark the corners get, 0 to 1
                 core::Point paintedAt; // where the painted-shade mask's top left lies, in the area's pixels
             };
@@ -124,6 +125,8 @@ namespace gfx {
             /// @param tone The light left in a full shadow.
             /// @param paintedAt Where the painted-shade mask's top left lies, in the area's pixels.
             /// @param leavePainted False to cast them over the painted shade too (a picture the mask is not of).
+            /// @param solids Shadows already laid on the ground, as triangles (three vertices each) in the area's pixels: their colour
+            /// is how lit the ground is under them (0 black); where they overlap the darkest counts.
             void castShadows(
                 const RenderDevice& device,
                 core::Size area,
@@ -131,7 +134,8 @@ namespace gfx {
                 const std::vector<Sprite>& sprites,
                 const Tone& tone,
                 core::Point paintedAt,
-                bool leavePainted = true
+                bool leavePainted = true,
+                const std::vector<SDL_Vertex>& solids = {}
             );
 
             /// @brief How much of a frame's drifting shade lies over a point.
@@ -167,6 +171,7 @@ namespace gfx {
 
             SdlHandle<SDL_Texture> m_map; // the light, a pixel for kCoarse x kCoarse of the area
             SdlHandle<SDL_Texture> m_spot; // a round light: white, alpha falling off to the edge
+            SdlHandle<SDL_Texture> m_spotLit; // the same with the fall-off in its colour (alpha whole), to brighten by the picture's own colour
             SdlHandle<SDL_Texture> m_pattern; // the shade: white, alpha the pattern, repeats at its edges
             SdlHandle<SDL_Texture> m_corner; // black, alpha rising to the corners
             /// @brief Draws sprites so that what is under their shape gets darker.

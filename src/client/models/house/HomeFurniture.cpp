@@ -181,7 +181,9 @@ namespace client {
             return 3; // validation result 3: the item has no second facing
         }
         const auto span = spanOf(record.itemId, record.rotation);
-        if (placed && !area.contains(span->x + record.cellX - 1, span->y + record.cellY - 1)) {
+        // a tool on a Work Platform (parent set) has no furniture size, so its "last cell" is x - 1, y - 1: outside the room for a platform
+        // against the left or back wall. It stands on the platform, so only its first cell is checked.
+        if (placed && record.parent == 0 && !area.contains(span->x + record.cellX - 1, span->y + record.cellY - 1)) {
             return 1; // validation result 1: last cell outside the room
         }
         if (!isCarpet(record.itemId) && record.retained == 0 && placementBlocked(record.cellX, record.cellY, record.cellZ, record, 0)) {

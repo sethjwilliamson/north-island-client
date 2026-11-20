@@ -87,12 +87,13 @@ namespace client {
         constexpr double kMostSpinMs = 5.0; // the longest busy wait before a capped frame, ms
 
         /// @brief The lighting's switches by their names in the settings file.
-        constexpr std::array<std::pair<const char*, bool ExtraSettings::Lighting::*>, 5> kLighting{{
+        constexpr std::array<std::pair<const char*, bool ExtraSettings::Lighting::*>, 6> kLighting{{
             {"enabled", &ExtraSettings::Lighting::enabled},
             {"shadows", &ExtraSettings::Lighting::shadows},
             {"clouds", &ExtraSettings::Lighting::clouds},
             {"air", &ExtraSettings::Lighting::air},
-            {"occlusion", &ExtraSettings::Lighting::occlusion}
+            {"occlusion", &ExtraSettings::Lighting::occlusion},
+            {"shadows3d", &ExtraSettings::Lighting::shadows3d}
         }};
 
         /// @brief The on / off speedups by their names in the settings file.

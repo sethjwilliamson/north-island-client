@@ -537,6 +537,10 @@ namespace client {
             /// @return The most recently used movable window that is open now, if any.
             std::optional<MovableWindow> lastUsedWindow() const;
 
+            /// @brief The movable windows open now, least recently used first, as the party's Shift+click moves them (qol multi-login).
+            /// @return Each open movable window with its place; none whose layer is hidden (an exclusive talk).
+            std::vector<MovableWindow> openWindows() const;
+
             /// @brief Closes the movable window of that key if open.
             /// @param key The window kind (MovableWindow::key).
             /// @return True when it was open.

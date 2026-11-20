@@ -70,6 +70,22 @@ namespace client {
         return last;
     }
 
+    std::vector<WorldScene::MovableWindow> WorldScene::openWindows() const {
+        std::vector<MovableWindow> open;
+        for (const MovableKind& kind : m_movableWindows) {
+            const ui::Window* shown = shownWindowOf(kind);
+            if (shown == nullptr) {
+                continue;
+            }
+            if (const auto position = m_screen.screenPositionOf(*shown)) {
+                open.push_back(MovableWindow{kind.key, *position, kind.usedAtMs});
+            }
+        }
+        // opened again in this order, the one used last ends up in front
+        std::stable_sort(open.begin(), open.end(), [](const MovableWindow& a, const MovableWindow& b) { return a.usedAtMs < b.usedAtMs; });
+        return open;
+    }
+
     bool WorldScene::closeMovableWindow(const std::string& key) {
         MovableKind* kind = movableKind(key);
         if (kind == nullptr || shownWindowOf(*kind) == nullptr) {

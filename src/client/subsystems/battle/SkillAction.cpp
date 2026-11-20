@@ -1117,7 +1117,11 @@ namespace client {
         hit.hitEffectOn = false;
         if (slot != m_attacker) {
             hit.action = stance(hit);
-            hit.position = motion.screen();
+            // its cell as the drawn camera shows it now (motion.screen() counts the camera the motion stepped ahead to, a tick before
+            // the drawn camera got there: the fighter popped off its cell for a tick at the end of each hit)
+            const core::Point cell = BattleField::cellPosition(hit.row, hit.col);
+            const core::Point camera = context.camera.position();
+            hit.position = {cell.x + BattleCamera::kRest.x - camera.x, cell.y + BattleCamera::kRest.y - camera.y};
             hit.placed = true;
             hit.holdFrame = 255; // 255: hold the pose (hold-frame sentinel)
         }

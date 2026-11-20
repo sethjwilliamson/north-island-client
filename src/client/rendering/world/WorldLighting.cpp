@@ -1,11 +1,14 @@
 #include "client/rendering/world/WorldLighting.h"
 
+#include "client/rendering/world/SolidShadows.h"
 #include "core/Log.h"
+#include "gfx/SpriteShapes.h"
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 
@@ -18,8 +21,8 @@ namespace client {
         // the looks the file is first written with; scene types: 1 open land, 2 village, 3 indoors, 4 cave, 6 woods, 10 shore
         constexpr const char* kBuiltIn = R"json({
   "enabled": true,
-  "version": 24,
-  "help": "Light 1 leaves the picture as it is, 2 doubles it, 0 is black. 'types' holds a look per kind of map over 'default': a scene type's number (1 open land, 2 village, 3 indoors, 4 cave, 5 ship, 6 woods, 8 sea, 9 volcano, 10 shore, 11 water cave, 12 desert, 14 seabed), 'room' for the painted maps of type 4 (lobbies, halls, jails), 'battle' for battles; 'maps' holds what differs for one map id. Saved changes show at once. Only the door and object lights waver ('flicker') and glow onto the picture ('glow'). A file with a lower 'version' than the game's is written anew. 'shadows' are cast by figures (and by the map's objects with 'objects'), along 'direction' as much as 'sun' says (0 inside, where only the lights cast shadows; never where the own player has a light), and away from the lights near by: the own player's always, and as much as 'lamps' says (0 to 1) the other players', the doors', the objects' and the painted ones (on the screen; the backgrounds' painted shadows fall to the upper right), in the 'tone' of the painted ones; with 'skipPainted' they and the drifting shade are left out where the background is painted in shade already; with 'shaped' a figure's shadow has the figure's shape (else it is an ellipse of 'length' and 'width'), and 'figures' is how much darker a figure gets where it stands in painted shade (0 for not at all); 'baked' finds the lights painted into a background: 'lights' is how strong each shines again, 'rays' how strong a ray falls from each window; a shadow starts 'start' pixels behind the feet; 'occlusion' darkens the ground along the outline of every figure and thing that stands on it, most at its foot (0 for not at all), whatever the light; 'effectLights' is how much a battle's effects that shine (fire, lightning, flashes) light the field around them, in their own colour (0 for not at all); 'water' glints, 'motes' drift in the air, 'shafts' are beams of light that come down from where the shadows fall away from: they lean as the shadows' 'direction' and 'length' say, or 'angle' degrees from upright when that is 0 or more.",
+  "version": 26,
+  "help": "Light 1 leaves the picture as it is, 2 doubles it, 0 is black. 'types' holds a look per kind of map over 'default': a scene type's number (1 open land, 2 village, 3 indoors, 4 cave, 5 ship, 6 woods, 8 sea, 9 volcano, 10 shore, 11 water cave, 12 desert, 14 seabed), 'room' for the painted maps of type 4 (lobbies, halls, jails), 'battle' for battles; 'maps' holds what differs for one map id. Saved changes show at once. Only the door and object lights (and the NPCs that burn) waver ('flicker', or a light's own 'flicker' in 'doorLight' or 'objectLight') and glow onto the picture ('glow'); 'vivid' is how much of that glow brightens the picture's own colours (0 adds the light's colour, which makes the colours paler). 'npcLights' are the NPCs that burn, by Npc.dat id, each with the colour of its light; they are lit as the objects are ('objectLight's radius and strength). A file with a lower 'version' than the game's is written anew. 'shadows' are cast by figures (and by the map's objects with 'objects'), along 'direction' as much as 'sun' says (0 inside, where only the lights cast shadows; never where the own player has a light), and away from the lights near by: the own player's always, and as much as 'lamps' says (0 to 1) the other players', the doors', the objects' and the painted ones (on the screen; the backgrounds' painted shadows fall to the upper right), in the 'tone' of the painted ones; with 'skipPainted' they and the drifting shade are left out where the background is painted in shade already; with 'shaped' a figure's shadow has the figure's shape (else it is an ellipse of 'length' and 'width'), and 'figures' is how much darker a figure gets where it stands in painted shade (0 for not at all); 'baked' finds the lights painted into a background: 'lights' is how strong each shines again, 'rays' how strong a ray falls from each window; a shadow starts 'start' pixels behind the feet; 'occlusion' darkens the ground along the outline of every figure and thing that stands on it, most at its foot (0 for not at all), whatever the light; 'effectLights' is how much a battle's effects that shine (fire, lightning, flashes) light the field around them, in their own colour (0 for not at all); 'water' glints, 'motes' drift in the air, 'shafts' are beams of light that come down from where the shadows fall away from: they lean as the shadows' 'direction' and 'length' say, or 'angle' degrees from upright when that is 0 or more.",
   "types": {
     "default": {
       "ambient": [1.0, 1.0, 1.0],
@@ -29,9 +32,11 @@ namespace client {
       "playerLight": { "tone": [1.0, 0.86, 0.62], "radius": 200, "strength": 0.0 },
       "othersLight": { "tone": [1.0, 0.86, 0.62], "radius": 150, "strength": 0.0 },
       "doorLight": { "tone": [1.0, 0.92, 0.7], "radius": 110, "strength": 0.25 },
-      "objectLight": { "tone": [1.0, 0.8, 0.5], "radius": 120, "strength": 0.35 },
+      "objectLight": { "tone": [1.0, 0.76, 0.45], "radius": 120, "strength": 0.35 },
       "flicker": 0.05,
-      "glow": 0.12,
+      "glow": 0.18,
+      "vivid": 1.0,
+      "npcLights": { "18043": [1.0, 0.72, 0.4], "19086": [1.0, 0.8, 0.35], "19087": [0.5, 1.0, 0.45], "19088": [0.45, 0.65, 1.0], "19142": [1.0, 0.72, 0.4], "20159": [1.0, 0.72, 0.4] },
       "shadows": { "strength": 0.95, "length": 80, "width": 22, "direction": [0.91, -0.41], "tone": [0.52, 0.545, 0.59], "objects": 0.0, "skipPainted": true, "shaped": true, "figures": 1.0, "start": 4, "lamps": 0.0, "sun": 1.0 },
       "baked": { "lights": 0.0, "radius": 1.0, "rays": 0.0, "rayLength": 150 },
       "water": { "sparkle": 0.85 },
@@ -54,10 +59,10 @@ namespace client {
       "ambient": [0.4, 0.44, 0.6],
       "corners": 0.45,
       "playerLight": { "radius": 250, "strength": 0.38 },
-      "othersLight": { "strength": 0.25 },
-      "doorLight": { "tone": [0.8, 0.92, 1.0], "radius": 220, "strength": 0.8 },
+      "othersLight": { "strength": 0.0 },
+      "doorLight": { "tone": [1.0, 0.84, 0.6], "radius": 220, "strength": 0.8, "flicker": 0.0 },
       "objectLight": { "radius": 170, "strength": 0.9 },
-      "glow": 0.2,
+      "glow": 0.3,
       "shadows": { "strength": 0.8, "length": 60, "tone": [0.4, 0.4, 0.46], "lamps": 1.0 },
       "motes": { "amount": 26, "strength": 0.3 }
     },
@@ -99,6 +104,7 @@ namespace client {
             readNumber(*found, "radius", radius);
             source.radius = static_cast<int>(radius);
             readNumber(*found, "strength", source.strength);
+            readNumber(*found, "flicker", source.flicker);
         }
 
         /// @brief A number that is the same each time for a pair of numbers, and looks like chance.
@@ -183,6 +189,17 @@ namespace client {
         readSource(look, "objectLight", m_look.object);
         readNumber(look, "flicker", m_look.flicker);
         readNumber(look, "glow", m_look.glow);
+        readNumber(look, "vivid", m_look.vivid);
+        if (const auto burning = look.find("npcLights"); burning != look.end() && burning->is_object()) {
+            for (const auto& [key, value] : burning->items()) {
+                gfx::LightMap::Tone tone;
+                const Json holder{{"tone", value}};
+                readTone(holder, "tone", tone);
+                if (const int id = std::atoi(key.c_str()); id > 0 && value.is_array()) {
+                    m_look.npcLights[id] = tone;
+                }
+            }
+        }
         if (const auto shadows = look.find("shadows"); shadows != look.end() && shadows->is_object()) {
             readNumber(*shadows, "strength", m_look.shadows);
             readNumber(*shadows, "length", m_look.shadowLength);
@@ -255,6 +272,8 @@ namespace client {
     ) {
         refresh(map.id(), kindOf(map, sceneType), nowMs);
         m_accelerated = canvas.device().isAccelerated();
+        m_castParts.clear();
+        m_leans.clear();
         if (!m_enabled || !m_accelerated) {
             return;
         }
@@ -306,7 +325,6 @@ namespace client {
                 findBakedLights(pictures, map);
             }
         }
-        m_thingShadows.clear();
         if (m_look.shadows <= 0 && m_look.objectShadows <= 0 && m_look.occlusion <= 0) {
             return;
         }
@@ -350,6 +368,13 @@ namespace client {
                     }
                 }
             }
+            if (m_look.object.strength > 0 && !m_look.npcLights.empty()) {
+                for (const MapNpc& npc : npcs) {
+                    if (npc.visible && m_look.npcLights.count(npc.info.npcId) != 0) {
+                        lampAt(npc.body.position, static_cast<float>(m_look.object.radius), m_look.shadowLamps, false);
+                    }
+                }
+            }
             if (m_look.bakedLights > 0) {
                 for (const Baked& light : m_baked) {
                     lampAt(light.at, static_cast<float>(light.radius) * m_look.bakedRadius, m_look.shadowLamps * light.strength * light.casts, false);
@@ -363,6 +388,10 @@ namespace client {
             float strength = 0; // 0: none
             float lampShare = 0; // how much of it the lights near by make, 0 (the look's direction alone) to 1
             float length = 1; // of the look's length
+            float lampPart = 0; // of the way the shadow falls, how much the lights near by make (the rest the sun)
+            float lampX = 0; // where the lights near by are as one light, on the ground: the screen's x, its y divided by kFlat
+            float lampY = 0;
+            float lampHigh = 100; // and how high that light hangs to cast a shadow as long as the look's, px
         };
         const auto fallAt = [&](core::Point at, bool carriesOwn) {
             constexpr float kOwnNear = 12; // nearer than this to the own player's light a thing carries it, px
@@ -372,6 +401,8 @@ namespace client {
             float most = 0;
             float mostOf = 0; // the pull of the light that pulls most here, as it is at the light itself
             float fars = 0;
+            float towardX = 0; // from the lights, on the ground
+            float towardY = 0;
             for (const Lamp& lamp : lamps) {
                 if (lamp.own && carriesOwn) {
                     continue;
@@ -387,6 +418,8 @@ namespace client {
                 const float weight = pull * pull * pull;
                 lampX += weight * x / far;
                 lampY += weight * y / far * kFlat * kFlat;
+                towardX += weight * x / far;
+                towardY += weight * y / far;
                 pulls += weight;
                 fars += weight * far;
                 if (pull > most) {
@@ -423,6 +456,14 @@ namespace client {
             constexpr float kLampHigh = 110; // from this far a light's shadow has its whole length, px
             const float lampLong = fall.lampShare > 0 ? std::clamp(fars / pulls / kLampHigh, 0.15f, 1.0f) : 1.0f;
             fall.length = (sun + fall.lampShare * lampLong) / (sun + fall.lampShare);
+            fall.lampPart = fall.lampShare / (sun + fall.lampShare);
+            if (const float toward = std::sqrt(towardX * towardX + towardY * towardY); fall.lampShare > 0 && toward > 0) {
+                const float far = fars / pulls;
+                fall.lampX = static_cast<float>(at.x) - towardX / toward * far;
+                fall.lampY = static_cast<float>(at.y) / kFlat - towardY / toward * far;
+                // a point h high casts its shadow far x h / (high - h) away: near the feet that is as long as the look says
+                fall.lampHigh = far / std::max(0.05f, m_look.shadowLength / 88.0f * lampLong);
+            }
             return fall;
         };
         // a shadow's ellipse from the foot of what casts it
@@ -443,6 +484,30 @@ namespace client {
         };
         // the figures as they were drawn a frame ago, laid flat: their textures must be there still
         std::vector<gfx::LightMap::Sprite> sprites;
+        std::vector<SDL_Vertex> solids; // the figures' shadows cast as solid things (the player's choice)
+        // a part of a shadow, kept for what stands in it: where it lies on the ground, as drawShapes lays it there
+        const auto keep = [&](const gfx::LightMap::Sprite& part, core::Point owner) {
+            if (part.texture == nullptr || part.to.w <= 0 || part.to.h <= 0 || part.amount * part.alpha <= 0.02f) {
+                return;
+            }
+            float left = 1e9f;
+            float top = 1e9f;
+            float right = -1e9f;
+            float bottom = -1e9f;
+            for (const float x : {part.to.x, part.to.x + part.to.w}) {
+                for (const float y : {part.to.y, part.to.y + part.to.h}) {
+                    const float over = std::max(0.0f, static_cast<float>(part.feet.y) - y);
+                    const float beside = x - static_cast<float>(part.feet.x);
+                    const float groundX = static_cast<float>(part.feet.x) + part.startX + beside * part.acrossX + over * part.leanX;
+                    const float groundY = static_cast<float>(part.feet.y) + part.startY + beside * part.acrossY + over * part.leanY;
+                    left = std::min(left, groundX);
+                    top = std::min(top, groundY);
+                    right = std::max(right, groundX);
+                    bottom = std::max(bottom, groundY);
+                }
+            }
+            m_castParts.push_back({part, owner, {left, top, right - left, bottom - top}});
+        };
         const bool shaped = m_look.shapedShadows && m_look.shadows > 0 && m_lastValid && m_lastScene == map.id() && !gfx::freedTextures().all;
         if (shaped) {
             constexpr float kTall = 88; // a figure this tall casts a shadow of the look's length, px
@@ -455,27 +520,209 @@ namespace client {
                     continue;
                 }
                 const Fall fall = fallAt(at, false);
+                m_leans.push_back({at, fall.dx * tall * fall.length * fall.strength, fall.dy * tall * fall.length * fall.strength});
                 if (m_look.shadows * fall.strength <= 0.02f) {
                     continue;
                 }
-                // under the sun the shadow leans and its width stays as it is; away from a light near by it lies as the figure
-                // turned over
+                if (m_options.shadows3d) { // as a solid thing (the player's choice)
+                    std::vector<gfx::LightMap::Sprite> parts;
+                    for (std::size_t i = figure.first; i < figure.first + figure.count && i < m_lastFigures.sprites.size(); ++i) {
+                        const gfx::SpriteEcho& drawn = m_lastFigures.sprites[i];
+                        if (!gfx::freedTextures().has(drawn.texture)) {
+                            parts.push_back({drawn.texture, drawn.from, {drawn.to.x + static_cast<float>(moved.x), drawn.to.y + static_cast<float>(moved.y), drawn.to.w, drawn.to.h}, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f});
+                        }
+                    }
+                    SolidLight light;
+                    light.flat = kFlat;
+                    light.lampShare = fall.lampPart;
+                    light.lampX = fall.lampX;
+                    light.lampY = fall.lampY;
+                    light.lampHigh = fall.lampHigh;
+                    if (const float sunSize = std::sqrt(m_look.shadowX * m_look.shadowX + m_look.shadowY * m_look.shadowY); sunSize > 0) {
+                        light.sunX = m_look.shadowX / sunSize * tall;
+                        light.sunY = m_look.shadowY / sunSize * tall;
+                    }
+                    castSolidShadow(parts, at, light, std::min(1.0f, m_look.shadows * fall.strength), solids);
+                    // what stands in it is darkened as by the flat shadow of the figure standing upright, near enough
+                    float acrossX = -fall.dy;
+                    float acrossY = fall.dx * 0.85f;
+                    if (acrossX < 0) {
+                        acrossX = -acrossX;
+                        acrossY = -acrossY;
+                    }
+                    acrossX = 1 + (acrossX - 1) * fall.lampShare;
+                    acrossY *= fall.lampShare;
+                    for (gfx::LightMap::Sprite part : parts) {
+                        part.feet = at;
+                        part.amount = std::min(1.0f, m_look.shadows * fall.strength);
+                        part.leanX = fall.dx * tall * fall.length;
+                        part.leanY = fall.dy * tall * fall.length;
+                        part.acrossX = acrossX;
+                        part.acrossY = acrossY;
+                        part.startX = fall.dx * m_look.shadowStart;
+                        part.startY = fall.dy * m_look.shadowStart;
+                        keep(part, at);
+                    }
+                    continue;
+                }
+                // Each column of the figure's sprites, a few pixels wide, is looked at for where it would touch the ground
+                constexpr int kStrip = 2; // a column is this many of the texture's pixels wide
+                constexpr float kClimb = 1.0f; // the ground under a column rises at most this many pixels for every pixel across
+                constexpr int kNear = 3; // a column's ground is evened out with this many columns to each side
+                struct Column {
+                    std::size_t sprite = 0;
+                    float fromX = 0; // its part of the sprite's rectangle, in the texture's pixels
+                    float wide = 0;
+                    float fromHigh = 0;
+                    SDL_FRect slice{}; // where it was drawn, cut off under its lowest pixel
+                    float ground = 0; // the screen's y where it touches the ground
+                    float high = 0; // how far its highest pixel is over that, px
+                };
+                std::vector<Column> columns;
+                std::vector<bool> cut(figure.count, false); // a sprite that is cast as columns (else as a whole)
+                float seenTop = 1e9f;
+                float seenBottom = -1e9f;
+                float seenLeft = 1e9f;
+                float seenRight = -1e9f;
+                std::vector<float> bottoms;
+                std::vector<float> tops;
+                for (std::size_t i = figure.first; i < figure.first + figure.count && i < m_lastFigures.sprites.size(); ++i) {
+                    const gfx::SpriteEcho& drawn = m_lastFigures.sprites[i];
+                    if (drawn.flipY || drawn.from.w <= 0 || drawn.from.h <= 0 || gfx::freedTextures().has(drawn.texture) || !gfx::spriteColumnBottoms(drawn.texture, drawn.from, kStrip, bottoms, tops)) {
+                        continue;
+                    }
+                    const SDL_FRect to{drawn.to.x + static_cast<float>(moved.x), drawn.to.y + static_cast<float>(moved.y), drawn.to.w, drawn.to.h};
+                    const float scaleX = to.w / drawn.from.w;
+                    const float scaleY = to.h / drawn.from.h;
+                    // the ground under a column: where its lowest pixel is, unless that lies far over its neighbours' ground.
+                    std::vector<float> grounded(bottoms.size(), -1);
+                    for (std::size_t column = 0; column < bottoms.size(); ++column) {
+                        if (bottoms[column] < 0) {
+                            continue;
+                        }
+                        float lowest = bottoms[column];
+                        for (std::size_t other = 0; other < bottoms.size(); ++other) {
+                            if (bottoms[other] >= 0) {
+                                const float apart = static_cast<float>(other > column ? other - column : column - other) * static_cast<float>(kStrip);
+                                lowest = std::max(lowest, bottoms[other] - kClimb * apart);
+                            }
+                        }
+                        grounded[column] = lowest;
+                    }
+                    // evened out with its neighbours: where it stepped from column to column the shadows' far ends stood apart like the
+                    // teeth of a comb
+                    for (std::size_t column = 0; column < bottoms.size(); ++column) {
+                        if (bottoms[column] < 0) {
+                            continue;
+                        }
+                        float sum = 0;
+                        int count = 0;
+                        for (std::size_t other = column >= kNear ? column - kNear : 0; other < std::min(bottoms.size(), column + kNear + 1); ++other) {
+                            if (grounded[other] >= 0) {
+                                sum += grounded[other];
+                                ++count;
+                            }
+                        }
+                        const float fromX = drawn.from.x + static_cast<float>(column * kStrip);
+                        const float wide = std::min(static_cast<float>(kStrip), drawn.from.x + drawn.from.w - fromX);
+                        const float left = drawn.flipX ? drawn.from.x + drawn.from.w - (fromX + wide) : fromX - drawn.from.x;
+                        const float fromHigh = bottoms[column] + 1 - drawn.from.y;
+                        Column piece;
+                        piece.sprite = i;
+                        piece.fromX = fromX;
+                        piece.wide = wide;
+                        piece.fromHigh = fromHigh;
+                        piece.slice = {to.x + left * scaleX, to.y, wide * scaleX, fromHigh * scaleY};
+                        piece.ground = to.y + (std::max(bottoms[column], sum / static_cast<float>(count)) + 1 - drawn.from.y) * scaleY;
+                        piece.high = piece.ground - (to.y + (tops[column] - drawn.from.y) * scaleY);
+                        columns.push_back(piece);
+                        seenBottom = std::max(seenBottom, piece.slice.y + piece.slice.h);
+                        seenLeft = std::min(seenLeft, piece.slice.x);
+                        seenRight = std::max(seenRight, piece.slice.x + piece.slice.w);
+                    }
+                    cut[i - figure.first] = true;
+                    SDL_FRect seen{};
+                    if (gfx::spriteSeenPart(drawn.texture, drawn.from, seen)) {
+                        seenTop = std::min(seenTop, to.y + (seen.y - drawn.from.y) * scaleY);
+                    }
+                }
+                // how much it lies: by how far up the figure the ground it touches reaches (the middle of the columns' grounds, not the
+                // few highest or lowest), or by how low its columns are over their ground for its width
+                constexpr float kSpreadUpright = 0.25f; // of its height, or less: it stands
+                constexpr float kSpreadLying = 0.4f; // or more: it lies
+                constexpr float kLowUpright = 0.6f; // its columns' middle height as much as this of its width, or more: it stands
+                constexpr float kLowLying = 0.4f; // or this much or less: it lies
+                float lying = 0;
+                const float seenHigh = seenBottom - seenTop;
+                // a figure drawn from several sprites is a person (body, head, hair, what is held): it stands. Its head's columns end
+                // at the neck, which read as ground far up the figure
+                constexpr float kAloft = 8; // a figure whose lowest pixel is this far over its feet or more is drawn in the air, px
+                if (figure.count == 1 && columns.size() >= 4 && seenHigh > 0 && static_cast<float>(at.y) - seenBottom < kAloft) {
+                    std::vector<float> grounds;
+                    grounds.reserve(columns.size());
+                    for (const Column& piece : columns) {
+                        grounds.push_back(piece.ground);
+                    }
+                    std::sort(grounds.begin(), grounds.end());
+                    const float spread = (grounds[grounds.size() * 4 / 5] - grounds[grounds.size() / 5]) / seenHigh;
+                    std::vector<float> highs;
+                    highs.reserve(columns.size());
+                    for (const Column& piece : columns) {
+                        highs.push_back(piece.high);
+                    }
+                    std::nth_element(highs.begin(), highs.begin() + static_cast<std::ptrdiff_t>(highs.size() / 2), highs.end());
+                    const float low = highs[highs.size() / 2] / std::max(1.0f, seenRight - seenLeft);
+                    lying = std::max(std::clamp((spread - kSpreadUpright) / (kSpreadLying - kSpreadUpright), 0.0f, 1.0f),
+                                     std::clamp((kLowUpright - low) / (kLowUpright - kLowLying), 0.0f, 1.0f));
+                }
+                // under the sun the shadow leans and its width stays as it is; away from a light near by an upright figure's lies as
+                // the figure turned over, and one that lies on the ground keeps its shape as seen: every column of it stands on its own
+                // ground and only what is over that falls away from the light, so its shadow starts all along its body, the tail too
                 constexpr float kWide = 0.85f; // a shadow lying sideways keeps this much of the figure's width: flatter it is a line
+                constexpr float kLyingHigh = 0.7f; // of what a lying thing's column has over its ground this much is height
+                const float turn = fall.lampShare * (1 - lying);
+                const float grounds = lying * fall.lampShare; // how much each column stands on its own ground, 0 to 1
+                const float high = 1 - (1 - kLyingHigh) * grounds;
                 float acrossX = -fall.dy;
                 float acrossY = fall.dx * kWide;
                 if (acrossX < 0) {
                     acrossX = -acrossX;
                     acrossY = -acrossY;
                 }
-                acrossX = 1 + (acrossX - 1) * fall.lampShare;
-                acrossY *= fall.lampShare;
+                acrossX = 1 + (acrossX - 1) * turn;
+                acrossY *= turn;
+                const float leanX = fall.dx * tall * fall.length * high;
+                const float leanY = fall.dy * tall * fall.length * high;
+                const float amount = std::min(1.0f, m_look.shadows * fall.strength);
+                const bool asColumns = grounds >= 0.5f; // mostly upright: cast as a whole (thin columns of it broke up into dots)
                 for (std::size_t i = figure.first; i < figure.first + figure.count && i < m_lastFigures.sprites.size(); ++i) {
                     const gfx::SpriteEcho& drawn = m_lastFigures.sprites[i];
-                    if (gfx::freedTextures().has(drawn.texture)) {
+                    if ((asColumns && cut[i - figure.first]) || gfx::freedTextures().has(drawn.texture)) {
                         continue;
                     }
                     const SDL_FRect to{drawn.to.x + static_cast<float>(moved.x), drawn.to.y + static_cast<float>(moved.y), drawn.to.w, drawn.to.h};
-                    sprites.push_back({drawn.texture, drawn.from, to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f, at, std::min(1.0f, m_look.shadows * fall.strength), fall.dx * tall * fall.length, fall.dy * tall * fall.length, acrossX, acrossY, fall.dx * m_look.shadowStart, fall.dy * m_look.shadowStart});
+                    sprites.push_back({drawn.texture, drawn.from, to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f, at, amount, leanX, leanY, acrossX, acrossY, fall.dx * m_look.shadowStart, fall.dy * m_look.shadowStart});
+                    keep(sprites.back(), at);
+                }
+                if (asColumns) {
+                    // a column is a slice of a body that is deep too: its width lies a little up or down the ground as well (whichever
+                    // lies further from the way the shadow falls), or lit from the side a slice casts a line too thin to be drawn whole
+                    constexpr float kDeep = 3.0f; // px up or down the screen for every pixel across
+                    constexpr float kSeam = 0.5f; // the columns overlap a little, so no line shows between them
+                    const float upward = acrossY - kDeep * grounds;
+                    const float downward = acrossY + kDeep * grounds;
+                    const float deepY = std::abs(acrossX * leanY - upward * leanX) >= std::abs(acrossX * leanY - downward * leanX) ? upward : downward;
+                    for (const Column& piece : columns) {
+                        const gfx::SpriteEcho& drawn = m_lastFigures.sprites[piece.sprite];
+                        const SDL_FRect slice{piece.slice.x - kSeam, piece.slice.y, piece.slice.w + 2 * kSeam, piece.slice.h};
+                        // it stands on its own ground at its own middle; where that middle falls is what the figure as a whole (turned
+                        // over, as much as it is not lying) gives it
+                        const core::Point middle{static_cast<int>(std::lround(slice.x + slice.w / 2)), static_cast<int>(std::lround(static_cast<float>(at.y) + (piece.ground - static_cast<float>(at.y)) * grounds))};
+                        const float beside = static_cast<float>(middle.x - at.x);
+                        sprites.push_back({drawn.texture, {piece.fromX, drawn.from.y, piece.wide, piece.fromHigh}, slice, drawn.flipX, false, static_cast<float>(drawn.alpha) / 255.0f, middle, amount, leanX, leanY, acrossX, deepY,
+                                           fall.dx * m_look.shadowStart + beside * (acrossX - 1), fall.dy * m_look.shadowStart + beside * acrossY});
+                        keep(sprites.back(), at);
+                    }
                 }
             }
         } else {
@@ -509,6 +756,7 @@ namespace client {
                     continue;
                 }
                 const Fall fall = fallAt(at, false);
+                m_leans.push_back({at, fall.dx * tall * fall.length * fall.strength, fall.dy * tall * fall.length * fall.strength});
                 if (m_look.shadows * fall.strength <= 0.02f) {
                     continue;
                 }
@@ -521,8 +769,6 @@ namespace client {
                 }
                 acrossX = 1 + (acrossX - 1) * fall.lampShare;
                 acrossY *= fall.lampShare;
-                // kept for the figures standing in it
-                m_thingShadows.push_back({at, fall.dx * tall * fall.length, fall.dy * tall * fall.length, acrossX, acrossY, std::min(1.0f, m_look.shadows * fall.strength), caster.picture, {caster.at.x + moved.x, caster.at.y + moved.y}, caster.frameTop});
                 for (std::size_t i = caster.first; i < caster.end && i < m_lastFigures.covers.size(); ++i) {
                     const gfx::SpriteEcho& drawn = m_lastFigures.covers[i];
                     if (gfx::freedTextures().has(drawn.texture)) {
@@ -539,6 +785,7 @@ namespace client {
                         to.h = over;
                     }
                     sprites.push_back({drawn.texture, from, to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f, at, std::min(1.0f, m_look.shadows * fall.strength), fall.dx * tall * fall.length, fall.dy * tall * fall.length, acrossX, acrossY, 0.0f, 0.0f});
+                    keep(sprites.back(), at); // kept for the figures and things standing in it
                 }
             }
         }
@@ -556,7 +803,7 @@ namespace client {
                 }
             }
         }
-        m_lightMap.castShadows(device, {window.width, window.height}, shadows, sprites, m_look.shadowTone, camera.toScreen(map.file().backgroundPosition()) + origin);
+        m_lightMap.castShadows(device, {window.width, window.height}, shadows, sprites, m_look.shadowTone, camera.toScreen(map.file().backgroundPosition()) + origin, true, solids);
         if (m_look.occlusion > 0 && m_lastValid && m_lastScene == map.id() && !gfx::freedTextures().all) {
             // little of the light all around reaches the ground right beside a thing that stands on it: a dark edge along the
             // outline of every thing and figure as it was drawn a frame ago, darkest at its foot, whatever the lights
@@ -621,39 +868,92 @@ namespace client {
         };
     }
 
-    float WorldLighting::thingShadeAt(gfx::PictureLibrary& pictures, core::Point ground) const {
-        float most = 0;
-        for (const ThingShadow& shadow : m_thingShadows) {
-            // back from the ground to the point of the thing whose shadow falls there
-            const float turn = shadow.acrossX * shadow.leanY - shadow.acrossY * shadow.leanX;
-            if (shadow.strength <= most || !shadow.picture.isValid() || std::abs(turn) < 0.001f) {
-                continue;
+    void WorldLighting::leanAt(core::Point feet, float& x, float& y) const {
+        // the lean worked out for what stood there when the shadows were cast, or for the nearest thing near by
+        constexpr int kNear = 160; // px: a lean found this near is near enough
+        int nearest = kNear * kNear + 1;
+        const Lean* found = nullptr;
+        for (const Lean& lean : m_leans) {
+            const int dx = lean.feet.x - feet.x;
+            const int dy = lean.feet.y - feet.y;
+            if (const int far = dx * dx + dy * dy; far < nearest) {
+                nearest = far;
+                found = &lean;
             }
-            const gfx::Picture& picture = pictures.picture(shadow.picture);
-            // a few points around it: the edge of the shadow is soft on a figure
-            constexpr int kSpread = 4;
-            int inside = 0;
-            int all = 0;
-            for (int sy = -kSpread; sy <= kSpread; sy += kSpread) {
-                for (int sx = -kSpread; sx <= kSpread; sx += kSpread) {
-                    ++all;
-                    const float x = static_cast<float>(ground.x + sx - shadow.feet.x);
-                    const float y = static_cast<float>(ground.y + sy - shadow.feet.y);
-                    const float beside = (x * shadow.leanY - y * shadow.leanX) / turn;
-                    const float over = (shadow.acrossX * y - shadow.acrossY * x) / turn;
-                    if (over < 0) {
-                        continue;
-                    }
-                    const int px = shadow.feet.x + static_cast<int>(beside) - shadow.at.x;
-                    const int py = shadow.feet.y - static_cast<int>(over) - shadow.at.y;
-                    if (py >= 0 && picture.isOpaque(px, py + shadow.frameTop)) {
-                        ++inside;
-                    }
+        }
+        if (found != nullptr) {
+            x = found->x;
+            y = found->y;
+            return;
+        }
+        // none near: along the look's direction, where there is a sun
+        const float size = std::sqrt(m_look.shadowX * m_look.shadowX + m_look.shadowY * m_look.shadowY);
+        const float sun = m_look.player.strength > 0 ? 0.0f : std::clamp(m_look.shadowSun, 0.0f, 1.0f);
+        const float tall = m_look.shadowLength / 88.0f;
+        x = size > 0 ? m_look.shadowX / size * tall * sun : 0;
+        y = size > 0 ? m_look.shadowY / size * tall * sun : 0;
+    }
+
+    float WorldLighting::castShadeAt(core::Point feet, float high, float leanX, float leanY) const {
+        if (leanX * leanX + leanY * leanY < 0.0001f || gfx::freedTextures().all) {
+            return 0;
+        }
+        constexpr float kSelf = 10; // px: a shadow cast from this near the feet is the thing's own
+        constexpr float kSpread = 3; // px: a few points around the one looked at, so that the shadow's edge is soft on a thing
+        constexpr float kAbove = 2; // px: what casts the shadow must be at least this much higher than the point it falls on
+        const float groundX = static_cast<float>(feet.x) + high * leanX;
+        const float groundY = static_cast<float>(feet.y) + high * leanY;
+        const float points[5][2] = {{0, 0}, {-kSpread, 0}, {kSpread, 0}, {0, -kSpread}, {0, kSpread}};
+        float sum = 0;
+        for (const auto& point : points) {
+            const float x = groundX + point[0];
+            const float y = groundY + point[1];
+            float most = 0;
+            for (const CastPart& part : m_castParts) {
+                const gfx::LightMap::Sprite& sprite = part.sprite;
+                const float amount = std::min(1.0f, sprite.amount * sprite.alpha);
+                if (amount <= most || x < part.bounds.x || y < part.bounds.y || x > part.bounds.x + part.bounds.w || y > part.bounds.y + part.bounds.h) {
+                    continue;
+                }
+                if (std::abs(static_cast<float>(part.owner.x - feet.x)) < kSelf && std::abs(static_cast<float>(part.owner.y - feet.y)) < kSelf) {
+                    continue;
+                }
+                // back from the ground to the point of what casts it whose shadow falls there
+                const float turn = sprite.acrossX * sprite.leanY - sprite.leanX * sprite.acrossY;
+                if (std::abs(turn) < 0.001f) {
+                    continue;
+                }
+                const float dx = x - static_cast<float>(sprite.feet.x) - sprite.startX;
+                const float dy = y - static_cast<float>(sprite.feet.y) - sprite.startY;
+                const float beside = (dx * sprite.leanY - sprite.leanX * dy) / turn;
+                const float over = (sprite.acrossX * dy - sprite.acrossY * dx) / turn;
+                if (over < high + kAbove) { // it stands between the light and what casts it: it is not in the shadow there
+                    continue;
+                }
+                const float atX = static_cast<float>(sprite.feet.x) + beside;
+                const float atY = static_cast<float>(sprite.feet.y) - over;
+                if (atX < sprite.to.x || atY < sprite.to.y || atX >= sprite.to.x + sprite.to.w || atY >= sprite.to.y + sprite.to.h || gfx::freedTextures().has(sprite.texture)) {
+                    continue;
+                }
+                gfx::SpriteMask mask;
+                if (!gfx::spriteMask(sprite.texture, mask)) {
+                    continue;
+                }
+                float u = (atX - sprite.to.x) / sprite.to.w * sprite.from.w;
+                float v = (atY - sprite.to.y) / sprite.to.h * sprite.from.h;
+                if (sprite.flipX) {
+                    u = sprite.from.w - u;
+                }
+                if (sprite.flipY) {
+                    v = sprite.from.h - v;
+                }
+                if (mask.seen(static_cast<int>(sprite.from.x + u), static_cast<int>(sprite.from.y + v))) {
+                    most = amount;
                 }
             }
-            most = std::max(most, shadow.strength * static_cast<float>(inside) / static_cast<float>(all));
+            sum += most;
         }
-        return most;
+        return sum / 5;
     }
 
     float WorldLighting::paintedShadeAt(core::Point point) const {
@@ -965,6 +1265,11 @@ namespace client {
         const float dy = m_look.shadowY / size;
         std::vector<gfx::LightMap::Sprite> sprites;
         std::vector<gfx::LightMap::Sprite> edges; // the ground is darker along the outline of a fighter who stands on it
+        std::vector<SDL_Vertex> solids; // the fighters' shadows cast as solid things (the player's choice)
+        std::vector<gfx::LightMap::Sprite> parts;
+        SolidLight sun;
+        sun.sunX = dx * tall;
+        sun.sunY = dy * tall;
         constexpr float kHigh = 90; // a fighter this high over the ground (a jump) casts no shadow any more, px
         for (const FigureEcho::Figure& figure : m_lastFigures.figures) {
             // the shadow stays on the ground under a fighter in the air, and fades the higher he is
@@ -972,20 +1277,26 @@ namespace client {
             if (near <= 0) {
                 continue;
             }
-            if (m_look.occlusion > 0) {
-            }
+            parts.clear();
             for (std::size_t i = figure.first; i < figure.first + figure.count && i < m_lastFigures.sprites.size(); ++i) {
                 const gfx::SpriteEcho& drawn = m_lastFigures.sprites[i];
                 if (gfx::freedTextures().has(drawn.texture)) {
                     continue;
                 }
-                sprites.push_back({drawn.texture, drawn.from, drawn.to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f, figure.feet, std::min(1.0f, m_look.shadows) * near, dx * tall, dy * tall, 1, 0, dx * m_look.shadowStart, dy * m_look.shadowStart});
+                if (m_options.shadows3d) {
+                    parts.push_back({drawn.texture, drawn.from, drawn.to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f});
+                } else {
+                    sprites.push_back({drawn.texture, drawn.from, drawn.to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f, figure.feet, std::min(1.0f, m_look.shadows) * near, dx * tall, dy * tall, 1, 0, dx * m_look.shadowStart, dy * m_look.shadowStart});
+                }
                 if (m_look.occlusion > 0 && figure.lift <= 2) {
                     edges.push_back({drawn.texture, drawn.from, drawn.to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f * std::min(1.0f, m_look.occlusion) * 0.34f, {}, 0.1f});
                 }
             }
+            if (!parts.empty()) {
+                castSolidShadow(parts, figure.feet, sun, std::min(1.0f, m_look.shadows) * near, solids);
+            }
         }
-        m_lightMap.castShadows(canvas.device(), {window.width, window.height}, {}, sprites, m_look.shadowTone, {0, 0}, false);
+        m_lightMap.castShadows(canvas.device(), {window.width, window.height}, {}, sprites, m_look.shadowTone, {0, 0}, false, solids);
         m_lightMap.edgeShadows(canvas.device(), {window.width, window.height}, edges, 16);
     }
 
@@ -1097,6 +1408,7 @@ namespace client {
         const Camera& camera,
         int sceneType,
         const std::vector<std::reference_wrapper<MapCharacter>>& players,
+        const std::vector<MapNpc>& npcs,
         std::uint64_t nowMs
     ) {
         refresh(map.id(), kindOf(map, sceneType), nowMs);
@@ -1110,6 +1422,7 @@ namespace client {
         frame.ambient = m_look.ambient;
         frame.corners = m_look.corners;
         frame.glow = m_look.glow;
+        frame.vivid = m_look.vivid;
         setShade(frame, canvas, camera, nowMs);
         frame.paintedAt = camera.toScreen(map.file().backgroundPosition()) + origin;
         int index = 0;
@@ -1119,7 +1432,7 @@ namespace client {
                 return;
             }
             const core::Point at = camera.toScreen(mapPoint) + origin;
-            const int radius = steady ? source.radius : static_cast<int>(static_cast<float>(source.radius) * (1 + m_look.flicker * waver(nowMs, index)));
+            const int radius = steady ? source.radius : static_cast<int>(static_cast<float>(source.radius) * (1 + (source.flicker >= 0 ? source.flicker : m_look.flicker) * waver(nowMs, index)));
             if (at.x + radius < 0 || at.y + radius < 0 || at.x - radius > window.width || at.y - radius > window.height) {
                 return;
             }
@@ -1133,11 +1446,37 @@ namespace client {
         for (const DoorLight& light : map.doorLights()) {
             add(m_look.door, light.position, false);
         }
+        // the glowing objects and the NPCs that burn
+        std::vector<std::pair<core::Point, gfx::LightMap::Tone>> burning;
         for (const GroundObject& object : map.objects()) {
             if (object.light && object.picture.isValid()) {
                 const gfx::Picture& picture = pictures.picture(object.picture);
-                add(m_look.object, {object.position.x + picture.width() / 2, object.position.y + picture.height() / std::max(1, object.info.frames) / 2}, false);
+                burning.emplace_back(core::Point{object.position.x + picture.width() / 2, object.position.y + picture.height() / std::max(1, object.info.frames) / 2}, m_look.object.tone);
             }
+        }
+        if (!m_look.npcLights.empty()) {
+            constexpr int kFlame = 18; // the light of a burning NPC is this far over its feet, px
+            for (const MapNpc& npc : npcs) {
+                if (const auto found = m_look.npcLights.find(npc.info.npcId); npc.visible && found != m_look.npcLights.end()) {
+                    burning.emplace_back(core::Point{npc.body.position.x, npc.body.position.y - kFlame}, found->second);
+                }
+            }
+        }
+        // where several of them stand close their lights add up to far too much (a room of fires is white): each is as much weaker
+        // as the others light its middle, so that every middle is about as bright as one light alone
+        // as the others light it a little beyond its own reach too: between two lights both shine (9 fires a pillar apart, as in a
+        // backroom puzzle, are then no brighter anywhere than about 0.7 of one fire alone)
+        constexpr float kCrowd = 1.5f;
+        const float reach = kCrowd * static_cast<float>(std::max(1, m_look.object.radius));
+        for (const auto& [at, tone] : burning) {
+            float others = 0;
+            for (const auto& [other, otherTone] : burning) {
+                const float dx = static_cast<float>(other.x - at.x) / reach;
+                const float dy = static_cast<float>(other.y - at.y) / reach;
+                const float inside = std::max(0.0f, 1 - (dx * dx + dy * dy)); // as the round light falls off
+                others += &other == &at ? 0.0f : inside * inside;
+            }
+            add({tone, m_look.object.radius, m_look.object.strength / (1 + others), m_look.object.flicker}, at, false);
         }
         if (m_look.bakedLights > 0) {
             for (const Baked& light : m_baked) {
@@ -1153,9 +1492,11 @@ namespace client {
             }
         }
         FigureEcho& figures = figureEcho();
-        if (m_accelerated && m_look.figureShade > 0 && m_look.player.strength <= 0 && (!m_painted.empty() || !m_thingShadows.empty()) && !figures.figures.empty()) {
-            // a figure in the shade painted into the background gets darker as the ground under it is. A point of it over the feet
-            // is in the shade when the ground is where its own shadow would fall: its head can be in the sun yet
+        const bool painted = m_look.player.strength <= 0 && !m_painted.empty(); // where the own player has a light no painted shade counts
+        if (m_accelerated && m_look.figureShade > 0 && (painted || !m_castParts.empty()) && (!figures.figures.empty() || !figures.things.empty())) {
+            // a figure (or a thing) in a shadow gets darker as the ground there is. A point of it over the feet is in the shadow when
+            // the ground is where its own shadow would fall: its head can be in the sun yet. The shadows cast in this frame darken
+            // what stands in them, the painted shade of the background only the figures (the things are painted with their own)
             constexpr float kTall = 88; // as for the shadows
             const float tall = m_look.shadowLength / kTall;
             const float dark = m_look.figureShade * (1 - (m_look.shadowTone.r + m_look.shadowTone.g + m_look.shadowTone.b) / 3);
@@ -1163,30 +1504,82 @@ namespace client {
             // what was drawn after a figure stands before it: the other things, and the figures after it
             std::vector<gfx::LightMap::Sprite> covers;
             std::vector<std::size_t> coversFrom;
-            std::size_t noted = 0;
             const auto cover = [&](const gfx::SpriteEcho& drawn) { covers.push_back({drawn.texture, drawn.from, drawn.to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f, {}}); };
-            for (const FigureEcho::Figure& figure : figures.figures) {
-                for (; noted < figure.coversFrom && noted < figures.covers.size(); ++noted) {
-                    cover(figures.covers[noted]);
+            // the things that may stand in a cast shadow, by their first cover: their last, and where they stand
+            std::map<std::size_t, std::pair<std::size_t, core::Point>> things;
+            if (!m_castParts.empty()) {
+                for (const auto& [first, end] : figures.things) {
+                    if (end <= first || end > figures.covers.size()) {
+                        continue;
+                    }
+                    float left = 1e9f;
+                    float top = 1e9f;
+                    float right = -1e9f;
+                    float bottom = -1e9f;
+                    for (std::size_t i = first; i < end; ++i) {
+                        const SDL_FRect& to = figures.covers[i].to;
+                        left = std::min(left, to.x);
+                        top = std::min(top, to.y);
+                        right = std::max(right, to.x + to.w);
+                        bottom = std::max(bottom, to.y + to.h);
+                    }
+                    if (right - left >= static_cast<float>(window.width) && bottom - top >= static_cast<float>(window.height)) {
+                        continue; // no thing: a layer over all
+                    }
+                    if (right < 0 || bottom < 0 || left > static_cast<float>(window.width) || top > static_cast<float>(window.height)) {
+                        continue;
+                    }
+                    core::Point feet{static_cast<int>((left + right) / 2), static_cast<int>(bottom)};
+                    for (const FigureEcho::Caster& caster : figures.casters) {
+                        if (caster.first == first) {
+                            feet = caster.feet; // where the lighting casts its shadow from: it is not darkened by that
+                        }
+                    }
+                    things[first] = {end, feet};
                 }
-                for (std::size_t i = figure.first; i < figure.first + figure.count && i < figures.sprites.size(); ++i) {
-                    const gfx::SpriteEcho& drawn = figures.sprites[i];
-                    sprites.push_back({drawn.texture, drawn.from, drawn.to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f, figure.feet});
-                    cover(drawn);
-                }
-                coversFrom.resize(sprites.size(), covers.size());
             }
-            for (; noted < figures.covers.size(); ++noted) {
-                cover(figures.covers[noted]);
+            constexpr float kFigure = 1; // what is noted in a sprite's 'amount' here: a figure (else a thing)
+            std::size_t noted = 0;
+            std::size_t next = 0; // the next figure
+            while (noted < figures.covers.size() || next < figures.figures.size()) {
+                if (next < figures.figures.size() && (figures.figures[next].coversFrom <= noted || noted >= figures.covers.size())) {
+                    const FigureEcho::Figure& figure = figures.figures[next++];
+                    for (std::size_t i = figure.first; i < figure.first + figure.count && i < figures.sprites.size(); ++i) {
+                        const gfx::SpriteEcho& drawn = figures.sprites[i];
+                        sprites.push_back({drawn.texture, drawn.from, drawn.to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f, figure.feet, kFigure});
+                        cover(drawn);
+                    }
+                    coversFrom.resize(sprites.size(), covers.size());
+                    continue;
+                }
+                if (const auto thing = things.find(noted); thing != things.end()) {
+                    const auto& [end, feet] = thing->second;
+                    for (; noted < end; ++noted) {
+                        const gfx::SpriteEcho& drawn = figures.covers[noted];
+                        sprites.push_back({drawn.texture, drawn.from, drawn.to, drawn.flipX, drawn.flipY, static_cast<float>(drawn.alpha) / 255.0f, feet, 0});
+                        cover(drawn);
+                    }
+                    coversFrom.resize(sprites.size(), covers.size());
+                    continue;
+                }
+                cover(figures.covers[noted++]);
             }
             m_lightMap.shadeSprites(canvas.device(), {window.width, window.height}, sprites, [&](const gfx::LightMap::Sprite& sprite, float y) {
                 const float over = std::max(0.0f, static_cast<float>(sprite.feet.y) - y);
-                const core::Point ground{sprite.feet.x + static_cast<int>(over * m_look.shadowX * tall), sprite.feet.y + static_cast<int>(over * m_look.shadowY * tall)};
-                const float painted = paintedShadeAt({ground.x - frame.paintedAt.x, ground.y - frame.paintedAt.y});
-                const float edge = std::clamp((painted - 0.3f) / 0.4f, 0.0f, 1.0f); // a little shade near by does not count
-                // the shadow the lighting casts for a tree darkens a figure as the painted shade does
-                const float shaded = std::max(edge * edge * (3 - 2 * edge), thingShadeAt(pictures, ground));
-                return dark * shaded * (1 - m_lightMap.shadeAt(frame, ground)); // under a cloud it is dark already
+                float shaded = 0;
+                if (!m_castParts.empty()) {
+                    float leanX = 0;
+                    float leanY = 0;
+                    leanAt(sprite.feet, leanX, leanY);
+                    shaded = castShadeAt(sprite.feet, over, leanX, leanY);
+                }
+                if (painted && sprite.amount >= kFigure) {
+                    const core::Point ground{sprite.feet.x + static_cast<int>(over * m_look.shadowX * tall), sprite.feet.y + static_cast<int>(over * m_look.shadowY * tall)};
+                    const float inPaint = paintedShadeAt({ground.x - frame.paintedAt.x, ground.y - frame.paintedAt.y});
+                    const float edge = std::clamp((inPaint - 0.3f) / 0.4f, 0.0f, 1.0f); // a little shade near by does not count
+                    shaded = std::max(shaded, edge * edge * (3 - 2 * edge) * (1 - m_lightMap.shadeAt(frame, ground))); // under a cloud it is dark already
+                }
+                return dark * shaded;
             }, covers, coversFrom);
         }
         // kept for the shadows of the next frame

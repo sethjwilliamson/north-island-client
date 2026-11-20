@@ -42,10 +42,11 @@ namespace client {
             &core::Speedups::quietWorkers,
             &core::Speedups::rememberRendererChecks
         };
-        /// @brief The lighting's switches of the Lighting group's check boxes, SettingsLight1 first.
+        /// @brief The lighting's switches of the Lighting group's check boxes, SettingsLight1 first; none for the second row, the shadows,
+        /// which is a choice (shadowChoices).
         constexpr std::array<bool ExtraSettings::Lighting::*, 5> kLightBoxes = {
             &ExtraSettings::Lighting::enabled,
-            &ExtraSettings::Lighting::shadows,
+            nullptr,
             &ExtraSettings::Lighting::clouds,
             &ExtraSettings::Lighting::air,
             &ExtraSettings::Lighting::occlusion
@@ -149,8 +150,11 @@ namespace client {
             if (number < 1 || number > static_cast<int>(kLightBoxes.size())) {
                 return;
             }
-            m_video = m_services.videoSettings();
             const auto member = kLightBoxes[static_cast<std::size_t>(number - 1)];
+            if (member == nullptr) {
+                return;
+            }
+            m_video = m_services.videoSettings();
             const bool checked = m_screen.get<ui::CheckBox>(args.source).isChecked();
             changeVideo([member, checked](ExtraSettings& video) { video.lighting.*member = checked; });
         });
@@ -499,13 +503,14 @@ namespace client {
     }
 
     void SettingsWindow::videoArrow(int number) {
-        // 20 video arrows: two (left, right) for each of 10 rows
-        if (number < 1 || number > 20) {
+        // 22 video arrows: two (left, right) for each of 11 rows
+        if (number < 1 || number > 22) {
             return;
         }
         const int step = number % 2 != 0 ? -1 : 1;
         m_video = m_services.videoSettings();
-        // arrow number ranges per row: 1-2 frames, 3-4 window, 5-6 renderer, 7-8 scale, 9-10 pixel art, 11-12 display, 13-14 HUD, 15-16 busy wait, 17-18 which speedups, 19-20 overlay
+        // arrow number ranges per row: 1-2 frames, 3-4 window, 5-6 renderer, 7-8 scale, 9-10 pixel art, 11-12 display, 13-14 HUD, 15-16 busy wait, 17-18 which speedups, 19-20 overlay,
+        // 21-22 shadows
         const std::vector<VideoChoice> choices = number <= 2    ? frameChoices(m_video)
                                                  : number <= 4  ? windowChoices(m_video)
                                                  : number <= 6  ? rendererChoices(m_video)
@@ -515,7 +520,8 @@ namespace client {
                                                  : number <= 14 ? hudChoices(m_video)
                                                  : number <= 16 ? spinChoices(m_video)
                                                  : number <= 18 ? speedupModeChoices(m_video)
-                                                                : overlayChoices(m_video);
+                                                 : number <= 20 ? overlayChoices(m_video)
+                                                                : shadowChoices(m_video);
         if (choices.empty()) {
             return;
         }
@@ -596,8 +602,11 @@ namespace client {
         m_screen.get<ui::CheckBox>("SettingsPixelArtOnSprites").setChecked(m_video.pixelArtSprites);
         m_screen.get<ui::CheckBox>("SettingsPixelArtOnText").setChecked(m_video.pixelArtText);
         for (std::size_t i = 0; i < kLightBoxes.size(); ++i) {
-            m_screen.get<ui::CheckBox>("SettingsLight" + std::to_string(i + 1)).setChecked(m_video.lighting.*kLightBoxes[i]);
+            if (kLightBoxes[i] != nullptr) {
+                m_screen.get<ui::CheckBox>("SettingsLight" + std::to_string(i + 1)).setChecked(m_video.lighting.*kLightBoxes[i]);
+            }
         }
+        m_screen.get<ui::Label>("SettingsShadowValue").setText(textOf(shadowChoices(m_video), "Off"));
         // the software renderer lights nothing
         m_screen.get<ui::Label>("SettingsLightHelp")
             .setText(m_services.rendererInUse == "software" ? "Not with the software renderer." : "Shown at once. Looks: lighting.json.");
@@ -715,6 +724,26 @@ namespace client {
             );
         }
         return choices;
+    }
+
+    std::vector<SettingsWindow::VideoChoice> SettingsWindow::shadowChoices(const ExtraSettings&) const {
+        // Off: no shadows of figures; 2D: cast from the flat sprites; 3D: from a rough solid shape worked out of them. Kept in the
+        // settings file as the two switches "shadows" and "shadows3d", as before
+        return {
+            {"Off", [](ExtraSettings& video) { video.lighting.shadows = false; }, [](const ExtraSettings& video) { return !video.lighting.shadows; }},
+            {"2D",
+             [](ExtraSettings& video) {
+                 video.lighting.shadows = true;
+                 video.lighting.shadows3d = false;
+             },
+             [](const ExtraSettings& video) { return video.lighting.shadows && !video.lighting.shadows3d; }},
+            {"3D",
+             [](ExtraSettings& video) {
+                 video.lighting.shadows = true;
+                 video.lighting.shadows3d = true;
+             },
+             [](const ExtraSettings& video) { return video.lighting.shadows && video.lighting.shadows3d; }},
+        };
     }
 
     std::vector<SettingsWindow::VideoChoice> SettingsWindow::hudChoices(const ExtraSettings&) const {

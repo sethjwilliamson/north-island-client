@@ -87,7 +87,8 @@ namespace client {
     /// from its login: while it is not in a team it is invited into the selected character's team (13/7, by that team's leader when it
     /// is an own character) when on its map, until it has been in a team and left it. Own characters accept each other's team
     /// invitations and lead. A ground click of a character in a team led by another own character walks that leader (walkToLeader); a
-    /// Ctrl+click on a row moves the last used window to that member (moveLastWindowTo); an Alt+click makes it its team's leader and
+    /// Ctrl+click on a row moves the last used window to that member (moveLastWindowTo); a Shift+click moves all the selected
+    /// character's open windows to it and selects it (moveWindowsAndSelect); an Alt+click makes it its team's leader and
     /// selects it (leadAndSelect). Also covers manual battle turns shown in the
     /// played account's place (a member due in another battle asks for attention on its row), the members' windows over the screen,
     /// the whisper and team chat relay, the NPC mirror and the services' log in/out hooks (WorldScene::openPartyLogin, askPartyLogOut).
@@ -286,7 +287,8 @@ namespace client {
             bool loginRowShown() const;
 
             /// @brief Takes a press or release of the mouse button on the rows: on a press, acts on the row under it (the left
-            /// button selects or opens the login form, with Ctrl held moves the last used window to it, with Alt held makes it lead and
+            /// button selects or opens the login form, with Ctrl held moves the last used window to it, with Shift held moves all the
+            /// selected character's open windows to it and selects it, with Alt held makes it lead and
             /// selects it; the right one asks to log out);
             /// the release of the button whose press was taken is taken too.
             /// @param event The SDL mouse button event.
@@ -299,6 +301,11 @@ namespace client {
             /// happens when the member owns it already, or when it can't open for the member (the owner keeps it). The selected character stays.
             /// @param index The member's row.
             void moveLastWindowTo(int index);
+
+            /// @brief Moves all the selected character's open movable windows (WorldScene::openWindows) to a member, each at the same
+            /// place on the screen, then selects the member. A window that can't open for the member stays with the selected character.
+            /// @param index The member's row.
+            void moveWindowsAndSelect(int index);
 
             /// @brief Makes a member its team's leader and selects it: the team's leader, when it is an own character, offers it the lead
             /// (WorldScene::offerLeadTo), which own characters take unasked. A member that leads already, is in no team or is led by

@@ -3,6 +3,7 @@
 #include "core/Log.h"
 #include "core/Speedups.h"
 #include "gfx/RenderDevice.h"
+#include "gfx/SpriteShapes.h"
 
 namespace gfx {
 
@@ -36,6 +37,9 @@ namespace gfx {
             return std::nullopt;
         }
         SDL_UpdateTexture(texture.m_texture.get(), nullptr, image.pixels().data(), image.width() * 4); // pitch: 4 bytes a pixel
+        if (device.isAccelerated()) { // the lighting casts shadows by the sprites' shapes
+            noteSpriteShape(texture.m_texture.get(), image);
+        }
         SDL_SetTextureBlendMode(texture.m_texture.get(), SDL_BLENDMODE_BLEND);
         if (detail > 1) {
             SDL_SetTextureScaleMode(texture.m_texture.get(), SDL_SCALEMODE_LINEAR);

@@ -278,7 +278,7 @@
             <ImageButton Name="SettingsVideoArrow16" Picture="Btn_ArrowR_4" Position="330,328" Click="onSettingsVideoArrow"/>
           </Panel>
           <!-- the experimental lighting (extra-settings.json "lighting"; its looks are in lighting.json): the whole of it and its
-               parts, the check boxes numbered in the view model's order -->
+               parts, the check boxes numbered in the view model's order (number 2, the shadows, is a choice of Off, 2D and 3D) -->
           <Panel Name="SettingsVideoGroup5" Bounds="0,0,352,26">
             <DrawingArea Name="SettingsVideoHead5" Bounds="0,0,352,26" HitTest="true" MouseDown="onSettingsVideoHead" MouseWheel="onSettingsVideoWheel"/>
             <CheckBox Name="SettingsVideoOpen5" PadSkip="true" Picture="Btn_ArrowR_1" CheckedPicture="Btn_ArrowDn_3" Position="12,4" Click="onSettingsVideoOpen"/>
@@ -288,8 +288,12 @@
             <Label Name="SettingsLightText1" Position="16,6" Text="Light the map and the battles" Effect="Shadow"/>
             <CheckBox Name="SettingsLight1" Picture="btn_UnCheck_1" CheckedPicture="btn_Check_1" Position="330,5" Click="onSettingsLight"/>
             <Label Name="SettingsLightHelp" Bounds="16,26,336,15" FontColor="#C8DCFF" Effect="Plain"/>
-            <Label Name="SettingsLightText2" Position="32,52" Text="Shadows of figures and objects" Effect="Shadow"/>
-            <CheckBox Name="SettingsLight2" Picture="btn_UnCheck_1" CheckedPicture="btn_Check_1" Position="330,51" Click="onSettingsLight"/>
+            <Label Name="SettingsLightText2" Position="32,52" Text="Figure and object shadows" Effect="Shadow"/>
+            <ImageButton Name="SettingsVideoArrow21" Picture="Btn_ArrowL_4" Position="252,50" Click="onSettingsVideoArrow"/>
+            <Panel Name="SettingsShadowField" Bounds="272,48,56,21" Skin="panel16" SkinSource="0,0,120,21" Borders="4,4,4,4">
+              <Label Name="SettingsShadowValue" Bounds="0,4,56,15" Align="Center" FontColor="#1E3C78" Effect="Plain"/>
+            </Panel>
+            <ImageButton Name="SettingsVideoArrow22" Picture="Btn_ArrowR_4" Position="330,50" Click="onSettingsVideoArrow"/>
             <Label Name="SettingsLightText3" Position="32,80" Text="Drifting shade of clouds and leaves" Effect="Shadow"/>
             <CheckBox Name="SettingsLight3" Picture="btn_UnCheck_1" CheckedPicture="btn_Check_1" Position="330,79" Click="onSettingsLight"/>
             <Label Name="SettingsLightText4" Position="32,108" Text="Dust, light shafts and water glints" Effect="Shadow"/>

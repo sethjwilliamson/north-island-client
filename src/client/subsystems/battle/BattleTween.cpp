@@ -116,7 +116,13 @@ namespace client {
             auto& pose = shown.fighters[slot];
             const auto& before = m_previous->fighters[slot];
             const auto& after = m_current->fighters[slot];
-            if (!pose || !before || !after || before->id != pose->id || after->id != pose->id || after->placed) {
+            if (!pose || !before || !after || before->id != pose->id || after->id != pose->id) {
+                continue;
+            }
+            if (after->placed) {
+                // snapped this tick: not blended from the tick before, but kept on its place on the ground while the camera is
+                // drawn between the ticks (its screen place counts the tick's camera)
+                pose->position = {after->position.x + m_current->camera.x - shown.camera.x, after->position.y + m_current->camera.y - shown.camera.y};
                 continue;
             }
             pose->position = between(before->position, after->position, amount);

@@ -897,6 +897,8 @@ namespace client {
         const int petSlot = m_characters.npcSlot(pet.spriteId, pet.directionKind, (player.walking ? 0 : kStanding) + player.direction);
         const int petFrame = m_characters.npcFrameCount(pet.spriteId, petSlot) > 0 ? frame % m_characters.npcFrameCount(pet.spriteId, petSlot) : 0;
         drawFigureShadow(canvas, feet, pet.shadow);
+        // the pet and its rider are one figure, standing where the pet does: the rider's shadow goes on from the pet's
+        const FigureEchoScope echo(canvas, feet);
         m_characters.drawNpc(canvas, pet, feet, petSlot, petFrame);
         const int bodyType = player.look.bodyType;
         const core::Point seat = RideOffsets::rider(bodyType, riderSlot, skill);
