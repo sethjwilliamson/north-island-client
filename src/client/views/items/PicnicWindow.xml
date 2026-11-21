@@ -5,8 +5,9 @@
      last created to the first: the controls here are in drawing order, the reverse of TPicnicForm.Create. -->
 <Panel Name="PicnicLayer" Bounds="0,0,800,600">
   <Window Name="Picnic" AbovePopups="true" Escape="onPicnicClose" Picture="Form_Picnic" Position="288,202" Size="223,195" ScreenFit="true" Visible="false">
-    <IconGrid Name="PicnicCells" Position="29,49" Columns="5" Rows="3" Pitch="34" CellSize="30" HoverColor="#00000000" DoubleClick="onPicnicUse" RightClick="onPicnicTake"/>
+    <IconGrid Name="PicnicCells" Pick="onPicnicSortLockPick" Position="29,49" Columns="5" Rows="3" Pitch="34" CellSize="30" HoverColor="#00000000" DoubleClick="onPicnicUse" RightClick="onPicnicTake"/>
     <ImageButton Name="PicnicCancel" Picture="Btn_Cancel_1" Position="84,163" Size="56,20" Click="onPicnicClose"/>
     <ImageButton Name="PicnicSort" Picture="Btn_Module_2" Position="146,163" Size="32,20" Narrow="true" IconLines="3,0 3,11; 0,3 3,0 6,3; 10,0 10,11; 7,8 10,11 13,8" IconWidth="2" Hint="Sort (qol)" Visible="false" Click="onPicnicSort"/>
+    <ImageButton Name="PicnicSortLock" Picture="Btn_Module_2" Position="180,163" Size="32,20" Narrow="true" IconLines="3,7 3,3 4,1 6,0 7,0 9,1 10,3 10,7; 1,7 12,7; 1,9 12,9; 1,11 12,11; 1,13 12,13" IconWidth="2" Hint="Lock places from sorting: while on, click places to lock or unlock them (qol)" Visible="false" Click="onPicnicSortLock"/>
   </Window>
 </Panel>

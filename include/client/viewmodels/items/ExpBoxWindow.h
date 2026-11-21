@@ -2,6 +2,7 @@
 #define NORTH_ISLAND_CLIENT_VIEWMODELS_ITEMS_EXP_BOX_WINDOW_H
 
 #include "client/rules/InventorySort.h"
+#include "client/viewmodels/items/SortLocks.h"
 #include "client/services/GameServices.h"
 #include "client/models/items/BagMarks.h"
 #include "client/models/items/Inventory.h"
@@ -157,6 +158,7 @@ namespace client {
             bool m_autoEdit = false;
             bool m_using = false;
             bool m_autoDone = false;
+            SortLocks m_sortLocks; // the qol lock button beside the sort button, and the places it keeps out of a sort
     };
 
 }

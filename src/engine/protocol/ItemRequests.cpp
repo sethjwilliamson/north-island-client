@@ -87,7 +87,22 @@ namespace protocol {
 
     core::Bytes sortQueryRequest() { return {kItems, 250, 0}; } // sub 250 (qol only): does the server sort?
 
-    core::Bytes sortRequest(SortGrid grid) { return {kItems, 250, 1, static_cast<std::uint8_t>(grid)}; } // sub 250 (qol only): sort a grid
+    core::Bytes sortRequest(SortGrid grid, const std::set<int>& locked) { // sub 250 (qol only): sort a grid
+        core::Bytes bytes{kItems, 250, 1, static_cast<std::uint8_t>(grid)};
+        std::vector<int> places;
+        for (const int place : locked) {
+            if (place >= 1 && place <= 255 && places.size() < 255) {
+                places.push_back(place);
+            }
+        }
+        if (!places.empty()) {
+            bytes.push_back(byte(static_cast<int>(places.size())));
+            for (const int place : places) {
+                bytes.push_back(byte(place));
+            }
+        }
+        return bytes;
+    }
 
     core::Bytes dropItemRequest(int bagSlot, int count) { return {kItems, 3, byte(bagSlot), byte(count), 1}; } // sub 3: drop on the ground
 

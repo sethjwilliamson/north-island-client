@@ -70,10 +70,12 @@ namespace client {
           m_messages(messages),
           m_hooks(std::move(hooks)),
           m_window(loadWindow(services, screen)),
-          m_grid(screen.get<ui::IconGrid>("PicnicCells")) {
+          m_grid(screen.get<ui::IconGrid>("PicnicCells")),
+          m_sortLocks(services, screen, "PicnicSortLock", "PicnicCells") {
         screen.on("onPicnicClose", [this](const ui::EventArgs&) { hide(); });
         screen.on("onPicnicSort", [this](const ui::EventArgs&) {
-            m_services.connection.send(protocol::sortRequest(protocol::SortGrid::Picnic));
+            m_sortLocks.setPicking(false);
+            m_services.connection.send(protocol::sortRequest(protocol::SortGrid::Picnic, m_sortLocks.places()));
             m_sorter.startOnServer(m_screen.context().nowMs);
         });
         screen.on("onPicnicTake", [this](const ui::EventArgs& args) { take(args.index); });
@@ -329,7 +331,9 @@ namespace client {
     }
 
     void PicnicWindow::updateSort(std::uint64_t nowMs) {
-        m_screen.get<ui::Element>("PicnicSort").setVisible(m_services.videoSettings().sortButtons && m_services.serverSorts);
+        const bool sortShown = m_services.videoSettings().sortButtons && m_services.serverSorts;
+        m_screen.get<ui::Element>("PicnicSort").setVisible(sortShown);
+        m_sortLocks.update(sortShown, isOpen());
         if (!isOpen()) {
             m_sorter.stop();
             return;

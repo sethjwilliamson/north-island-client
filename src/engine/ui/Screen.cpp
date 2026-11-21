@@ -922,6 +922,23 @@ namespace ui {
         if (m_pressHook && m_hoveredId != 0) {
             m_pressHook(m_hoveredId);
         }
+        if (!m_context.drag && (button == MouseButton::Left || button == MouseButton::Right)) {
+            // a grid picking cells (qol sort locks): a left press picks the cell and nothing else happens; a right press does nothing
+            const auto target = locate(m_hoveredId);
+            const auto* grid = target ? dynamic_cast<const IconGrid*>(&target->element.get()) : nullptr;
+            if (grid != nullptr && grid->isPicking()) {
+                if (button == MouseButton::Left) {
+                    if (m_context.playSound && !grid->clickSound().empty()) {
+                        m_context.playSound(grid->clickSound());
+                    }
+                    grid->pick(m_context, localMouse(*target, position));
+                    m_releaseConsumed = true;
+                } else {
+                    m_rightUpConsumed = true;
+                }
+                return;
+            }
+        }
         if (m_context.drag) {
             const bool modern = modernGrid(m_context.drag->sourceId) != nullptr;
             if (button == MouseButton::Right && modern) {

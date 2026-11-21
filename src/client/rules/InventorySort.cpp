@@ -61,10 +61,14 @@ namespace client {
         return {SortStep::Kind::Done, {}};
     }
 
-    std::vector<SortCell> sortCellsOf(const Inventory& grid, const formats::ItemTable& items) {
+    std::vector<SortCell> sortCellsOf(const Inventory& grid, const formats::ItemTable& items, const std::set<int>& locked) {
         std::vector<SortCell> cells(static_cast<std::size_t>(grid.slots()));
         for (int slot = 1; slot <= grid.slots(); ++slot) {
             SortCell& cell = cells[static_cast<std::size_t>(slot - 1)];
+            if (locked.count(slot) != 0) {
+                cell.fixed = true; // a locked place: neither moved from nor moved into
+                continue;
+            }
             const int occupant = grid.occupantOf(slot);
             if (occupant == 0) {
                 continue;

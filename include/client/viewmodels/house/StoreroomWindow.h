@@ -2,6 +2,7 @@
 #define NORTH_ISLAND_CLIENT_VIEWMODELS_HOUSE_STOREROOM_WINDOW_H
 
 #include "client/rules/InventorySort.h"
+#include "client/viewmodels/items/SortLocks.h"
 #include "client/services/GameServices.h"
 #include "client/models/items/BagMarks.h"
 #include "client/models/items/Inventory.h"
@@ -187,6 +188,7 @@ namespace client {
             Inventory m_grid;
             int m_piece = 0;
             InventorySorter m_sorter;
+            SortLocks m_sortLocks; // the qol lock button beside the sort button, and the places it keeps out of a sort
     };
 
 }

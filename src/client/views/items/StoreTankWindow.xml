@@ -6,9 +6,10 @@
      from it. -->
 <Panel Name="StoreTankLayer" Bounds="0,0,800,600" Topmost="true">
   <Window Name="StoreTank" Escape="onStoreTankClose" Picture="Form_StoreTank_1" Position="292,150" Visible="false">
-    <IconGrid Name="StoreTankCells" Position="23,51" Columns="5" Rows="4" Pitch="34" PitchY="57" HoverColor="#00000000" RightClick="onStoreTankTake"/>
+    <IconGrid Name="StoreTankCells" Pick="onStoreTankSortLockPick" Position="23,51" Columns="5" Rows="4" Pitch="34" PitchY="57" HoverColor="#00000000" RightClick="onStoreTankTake"/>
     <ImageButton Name="StoreTankClose" Picture="btn_close_1" Position="79,266" Hint="[ESC]" Click="onStoreTankClose"
                  ClickSound="" ReleaseSound="sound/wav0154.wav"/>
-    <ImageButton Name="StoreTankSort" Picture="Btn_Module_2" Position="145,266" Size="32,20" Narrow="true" IconLines="3,0 3,11; 0,3 3,0 6,3; 10,0 10,11; 7,8 10,11 13,8" IconWidth="2" Hint="Sort (qol)" Visible="false" Click="onStoreTankSort"/>
+    <ImageButton Name="StoreTankSort" Picture="Btn_Module_2" Position="141,266" Size="32,20" Narrow="true" IconLines="3,0 3,11; 0,3 3,0 6,3; 10,0 10,11; 7,8 10,11 13,8" IconWidth="2" Hint="Sort (qol)" Visible="false" Click="onStoreTankSort"/>
+    <ImageButton Name="StoreTankSortLock" Picture="Btn_Module_2" Position="175,266" Size="32,20" Narrow="true" IconLines="3,7 3,3 4,1 6,0 7,0 9,1 10,3 10,7; 1,7 12,7; 1,9 12,9; 1,11 12,11; 1,13 12,13" IconWidth="2" Hint="Lock places from sorting: while on, click places to lock or unlock them (qol)" Visible="false" Click="onStoreTankSortLock"/>
   </Window>
 </Panel>

@@ -2,6 +2,7 @@
 #define NORTH_ISLAND_CLIENT_VIEWMODELS_ITEMS_ITEM_WINDOW_H
 
 #include "client/rules/InventorySort.h"
+#include "client/viewmodels/items/SortLocks.h"
 #include "client/services/GameServices.h"
 #include "client/rules/BagRequests.h"
 #include "client/models/character/PlayerStatus.h"
@@ -472,6 +473,7 @@ namespace client {
             std::function<void(const ui::EventArgs&)> m_dropOnStoreroom;
             std::function<bool(int)> m_quickMove;
             InventorySorter m_sorter;
+            SortLocks m_sortLocks; // the qol lock button beside the sort button, and the places it keeps out of a sort
     };
 
 }

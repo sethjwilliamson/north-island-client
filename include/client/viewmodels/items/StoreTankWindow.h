@@ -2,6 +2,7 @@
 #define NORTH_ISLAND_CLIENT_VIEWMODELS_ITEMS_STORE_TANK_WINDOW_H
 
 #include "client/rules/InventorySort.h"
+#include "client/viewmodels/items/SortLocks.h"
 #include "client/services/GameServices.h"
 #include "client/models/items/BagMarks.h"
 #include "client/models/items/Inventory.h"
@@ -124,6 +125,7 @@ namespace client {
             ui::IconGrid& m_cells;
             std::array<protocol::ItemInstance, kRows + 1> m_tank{};
             int m_bagSlot = 0;
+            SortLocks m_sortLocks; // the qol lock button beside the sort button, and the places it keeps out of a sort
     };
 
 }

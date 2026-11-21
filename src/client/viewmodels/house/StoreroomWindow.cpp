@@ -82,7 +82,8 @@ namespace client {
           m_window(loadWindow(services, screen)),
           m_cells(screen.get<ui::IconGrid>("StoreroomCells")),
           m_iconSpot(screen.get<ui::Spot>("StoreroomIcon")),
-          m_grid(services.items, kRows) {
+          m_grid(services.items, kRows),
+          m_sortLocks(services, screen, "StoreroomSortLock", "StoreroomCells") {
         const gfx::PictureId icon = services.pictures.find("Icon_WareHouse_1").value_or(gfx::PictureId{});
         screen.get<ui::DrawingArea>("StoreroomPage").setPainter([this, icon](gfx::Canvas& canvas, core::Point at, std::uint64_t) {
             if (icon.isValid()) {
@@ -91,8 +92,9 @@ namespace client {
         });
         screen.on("onStoreroomClose", [this](const ui::EventArgs&) { close(); });
         screen.on("onStoreroomSort", [this](const ui::EventArgs&) {
+            m_sortLocks.setPicking(false);
             if (m_services.serverSorts) {
-                m_services.connection.send(protocol::sortRequest(protocol::SortGrid::Storeroom));
+                m_services.connection.send(protocol::sortRequest(protocol::SortGrid::Storeroom, m_sortLocks.places()));
                 m_sorter.startOnServer(m_screen.context().nowMs);
             } else {
                 m_sorter.start();
@@ -461,7 +463,9 @@ namespace client {
     }
 
     void StoreroomWindow::updateSort(std::uint64_t nowMs) {
-        m_screen.get<ui::Element>("StoreroomSort").setVisible(m_services.videoSettings().sortButtons);
+        const bool sortShown = m_services.videoSettings().sortButtons;
+        m_screen.get<ui::Element>("StoreroomSort").setVisible(sortShown);
+        m_sortLocks.update(sortShown, isOpen());
         if (!isOpen()) {
             m_sorter.stop();
             return;
@@ -469,7 +473,7 @@ namespace client {
         if (!m_sorter.isRunning()) {
             return;
         }
-        if (const auto said = m_sorter.step(sortCellsOf(m_grid, m_services.items), nowMs, [this](const SortMove& move) {
+        if (const auto said = m_sorter.step(sortCellsOf(m_grid, m_services.items, m_sortLocks.places()), nowMs, [this](const SortMove& move) {
                 m_services.connection.send(protocol::storeroomMoveRequest(move.from, move.to, move.count, m_piece));
             })) {
             m_messages.show(*said);

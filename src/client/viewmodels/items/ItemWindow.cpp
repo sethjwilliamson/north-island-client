@@ -151,15 +151,17 @@ namespace client {
           m_figureSpot(screen.get<ui::Spot>("ItemFigureFeet")),
           m_tipFillSpot(screen.get<ui::Spot>("ItemTipFill")),
           m_tipBorderSpot(screen.get<ui::Spot>("ItemTipBorder")),
-          m_expTipBorderSpot(screen.get<ui::Spot>("ItemExpTipBorder")) {
+          m_expTipBorderSpot(screen.get<ui::Spot>("ItemExpTipBorder")),
+          m_sortLocks(services, screen, "ItemSortLock", "ItemBag") {
         screen.get<ui::DrawingArea>("ItemStatus").setPainter([this](gfx::Canvas& canvas, core::Point at, std::uint64_t nowMs) {
             paintStatus(canvas, at, nowMs);
         });
         screen.get<ui::DrawingArea>("ItemName").setPainter([this](gfx::Canvas& canvas, core::Point at, std::uint64_t) { paintName(canvas, at); });
         screen.on("onItemWindowClose", [this](const ui::EventArgs&) { close(); });
         screen.on("onItemSort", [this](const ui::EventArgs&) {
+            m_sortLocks.setPicking(false);
             if (m_services.serverSorts) {
-                m_services.connection.send(protocol::sortRequest(protocol::SortGrid::Bag));
+                m_services.connection.send(protocol::sortRequest(protocol::SortGrid::Bag, m_sortLocks.places()));
                 m_sorter.startOnServer(m_screen.context().nowMs);
             } else {
                 m_sorter.start();
@@ -1056,7 +1058,9 @@ namespace client {
     }
 
     void ItemWindow::updateSort(std::uint64_t nowMs) {
-        m_screen.get<ui::Element>("ItemSort").setVisible(m_services.videoSettings().sortButtons);
+        const bool sortShown = m_services.videoSettings().sortButtons;
+        m_screen.get<ui::Element>("ItemSort").setVisible(sortShown);
+        m_sortLocks.update(sortShown, isOpen());
         if (!isOpen()) {
             m_sorter.stop();
             return;
@@ -1064,7 +1068,7 @@ namespace client {
         if (!m_sorter.isRunning()) {
             return;
         }
-        if (const auto said = m_sorter.step(sortCellsOf(m_inventory, m_services.items), nowMs, [this](const SortMove& move) {
+        if (const auto said = m_sorter.step(sortCellsOf(m_inventory, m_services.items, m_sortLocks.places()), nowMs, [this](const SortMove& move) {
                 m_services.connection.send(protocol::moveItemRequest(move.from, move.count, move.to));
             })) {
             m_messages.show(*said);

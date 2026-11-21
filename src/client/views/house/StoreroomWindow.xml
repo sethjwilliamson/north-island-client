@@ -9,9 +9,10 @@
       <!-- the warehouse icon's position -->
       <Spot Name="StoreroomIcon" Position="66,11"/>
     </DrawingArea>
-    <IconGrid Name="StoreroomCells" Position="19,74" Columns="5" Rows="10" Pitch="34" RightClick="onStoreroomRightClick" QuickMove="onStoreroomQuickMove" Draggable="true" Drop="onStoreroomDrop"/>
+    <IconGrid Name="StoreroomCells" Pick="onStoreroomSortLockPick" Position="19,74" Columns="5" Rows="10" Pitch="34" RightClick="onStoreroomRightClick" QuickMove="onStoreroomQuickMove" Draggable="true" Drop="onStoreroomDrop"/>
     <ImageButton Name="StoreroomCloseSmall" Picture="Btn_Close_s_1" Position="159,26" Size="18,18" Click="onStoreroomClose"/>
     <ImageButton Name="StoreroomSort" Picture="Btn_Module_2" Position="16,48" Size="32,20" Narrow="true" IconLines="3,0 3,11; 0,3 3,0 6,3; 10,0 10,11; 7,8 10,11 13,8" IconWidth="2" Hint="Sort (qol)" Visible="false" Click="onStoreroomSort"/>
+    <ImageButton Name="StoreroomSortLock" Picture="Btn_Module_2" Position="50,48" Size="32,20" Narrow="true" IconLines="3,7 3,3 4,1 6,0 7,0 9,1 10,3 10,7; 1,7 12,7; 1,9 12,9; 1,11 12,11; 1,13 12,13" IconWidth="2" Hint="Lock places from sorting: while on, click places to lock or unlock them (qol)" Visible="false" Click="onStoreroomSortLock"/>
     <ImageButton Name="StoreroomClose" Picture="Btn_Close_1" Position="76,425" Size="56,20" Click="onStoreroomClose"/>
   </Window>
 </Panel>

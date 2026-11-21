@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -60,8 +61,9 @@ namespace client {
     /// @brief Reads a grid into sort cells.
     /// @param grid The bag, bank, Item Bag or storeroom.
     /// @param items The item table (for each item's kind).
+    /// @param locked Places (1-based) the sort leaves alone (qol sort locks): read as fixed, whatever lies there, empty or not.
     /// @return One cell per place, place 1 at index 0.
-    std::vector<SortCell> sortCellsOf(const Inventory& grid, const formats::ItemTable& items);
+    std::vector<SortCell> sortCellsOf(const Inventory& grid, const formats::ItemTable& items, const std::set<int>& locked = {});
 
     /// @brief Runs a sort one move at a time, waiting for the grid to change between moves.
     class InventorySorter {

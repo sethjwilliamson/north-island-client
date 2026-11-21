@@ -5,10 +5,11 @@
      controls from the last created to the first: the controls here are in drawing order, the reverse of TExpBoxForm.Create. -->
 <Panel Name="ExpBoxLayer" Bounds="0,0,800,600">
   <Window Name="ExpBox" AbovePopups="true" Escape="onExpBoxClose" Picture="Form_ExpBox" Position="288,202" Size="223,195" ScreenFit="true" Visible="false">
-    <IconGrid Name="ExpBoxCells" Position="31,53" Columns="5" Rows="2" Pitch="34" CellSize="30" HoverColor="#00000000" DoubleClick="onExpBoxUse" RightClick="onExpBoxTake"/>
+    <IconGrid Name="ExpBoxCells" Pick="onExpBoxSortLockPick" Position="31,53" Columns="5" Rows="2" Pitch="34" CellSize="30" HoverColor="#00000000" DoubleClick="onExpBoxUse" RightClick="onExpBoxTake"/>
     <ImageButton Name="ExpBoxCancel" Picture="Btn_Cancel_1" Position="96,165" Size="56,20" Click="onExpBoxClose"/>
     <ImageButton Name="ExpBoxConfirm" Picture="Btn_confirm_1" Position="34,165" Size="56,20" Click="onExpBoxConfirm"/>
     <ImageButton Name="ExpBoxAuto" Picture="btn_UnCheck_1" Position="25,136" Size="16,16" Click="onExpBoxAuto"/>
-    <ImageButton Name="ExpBoxSort" Picture="Btn_Module_2" Position="158,165" Size="32,20" Narrow="true" IconLines="3,0 3,11; 0,3 3,0 6,3; 10,0 10,11; 7,8 10,11 13,8" IconWidth="2" Hint="Sort (qol)" Visible="false" Click="onExpBoxSort"/>
+    <ImageButton Name="ExpBoxSort" Picture="Btn_Module_2" Position="138,165" Size="32,20" Narrow="true" IconLines="3,0 3,11; 0,3 3,0 6,3; 10,0 10,11; 7,8 10,11 13,8" IconWidth="2" Hint="Sort (qol)" Visible="false" Click="onExpBoxSort"/>
+    <ImageButton Name="ExpBoxSortLock" Picture="Btn_Module_2" Position="172,165" Size="32,20" Narrow="true" IconLines="3,7 3,3 4,1 6,0 7,0 9,1 10,3 10,7; 1,7 12,7; 1,9 12,9; 1,11 12,11; 1,13 12,13" IconWidth="2" Hint="Lock places from sorting: while on, click places to lock or unlock them (qol)" Visible="false" Click="onExpBoxSortLock"/>
   </Window>
 </Panel>

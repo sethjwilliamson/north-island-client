@@ -8,11 +8,12 @@
 <Panel Name="BankItemLayer" Bounds="0,0,800,600">
   <Window Name="BankItem" Escape="onBankItemClose" Picture="Form_itemBank_1" Position="189,59" Visible="false">
     <ImageButton Name="BankItemSort" Picture="Btn_Module_2" Position="96,56" Size="32,20" Narrow="true" IconLines="3,0 3,11; 0,3 3,0 6,3; 10,0 10,11; 7,8 10,11 13,8" IconWidth="2" Hint="Sort (qol)" Visible="false" Click="onBankItemSort"/>
+    <ImageButton Name="BankItemSortLock" Picture="Btn_Module_2" Position="130,56" Size="32,20" Narrow="true" IconLines="3,7 3,3 4,1 6,0 7,0 9,1 10,3 10,7; 1,7 12,7; 1,9 12,9; 1,11 12,11; 1,13 12,13" IconWidth="2" Hint="Lock places from sorting: while on, click places to lock or unlock them (qol)" Visible="false" Click="onBankItemSortLock"/>
     <ImageButton Name="BankItemClose" Picture="Btn_Close_1" Position="179,437" Click="onBankItemClose"/>
     <ImageButton Name="BankItemCloseSmall" Picture="Btn_Close_s_1" Position="365,25" Size="18,18" Click="onBankItemClose"/>
     <ImageButton Name="BankItemWithdraw" Picture="Btn_ArrowR_5" Position="200,200" Size="17,17" Click="onBankItemWithdraw"/>
     <ImageButton Name="BankItemStore" Picture="Btn_ArrowL_5" Position="199,247" Size="17,17" Click="onBankItemStore"/>
-    <IconGrid Name="BankItemBank" Position="20,83" Columns="5" Rows="10" Pitch="34" Draggable="true" Press="onBankItemPress" Click="onBankItemBankClick"
+    <IconGrid Name="BankItemBank" Pick="onBankItemSortLockPick" Position="20,83" Columns="5" Rows="10" Pitch="34" Draggable="true" Press="onBankItemPress" Click="onBankItemBankClick"
               RightClick="onBankItemBankUnmark" QuickMove="onBankItemBankQuickMove" Drop="onBankItemBankDrop"/>
     <IconGrid Name="BankItemBag" Position="224,83" Columns="5" Rows="10" Pitch="34" Draggable="true" Press="onBankItemPress" Click="onBankItemBagClick"
               RightClick="onBankItemBagUnmark" QuickMove="onBankItemBagQuickMove" Drop="onBankItemBagDrop"/>

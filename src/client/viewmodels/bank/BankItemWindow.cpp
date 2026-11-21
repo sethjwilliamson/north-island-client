@@ -46,7 +46,8 @@ namespace client {
           m_requests(requests),
           m_window(loadWindow(services, screen)),
           m_bankGrid(screen.get<ui::IconGrid>("BankItemBank")),
-          m_bagGrid(screen.get<ui::IconGrid>("BankItemBag")) {
+          m_bagGrid(screen.get<ui::IconGrid>("BankItemBag")),
+          m_sortLocks(services, screen, "BankItemSortLock", "BankItemBank") {
         screen.on("onBankItemPress", [this](const ui::EventArgs& args) { m_dragSlot = args.index; });
         screen.on("onBankItemBagClick", [this](const ui::EventArgs& args) { toggleBag(args.index); });
         screen.on("onBankItemBankClick", [this](const ui::EventArgs& args) { toggleBank(args.index); });
@@ -60,8 +61,9 @@ namespace client {
         screen.on("onBankItemWithdraw", [this](const ui::EventArgs&) { withdraw(); });
         screen.on("onBankItemClose", [this](const ui::EventArgs&) { close(); });
         screen.on("onBankItemSort", [this](const ui::EventArgs&) {
+            m_sortLocks.setPicking(false);
             if (m_services.serverSorts) {
-                m_services.connection.send(protocol::sortRequest(protocol::SortGrid::Bank));
+                m_services.connection.send(protocol::sortRequest(protocol::SortGrid::Bank, m_sortLocks.places()));
                 m_sorter.startOnServer(m_screen.context().nowMs);
             } else {
                 m_sorter.start();
@@ -495,7 +497,9 @@ namespace client {
     }
 
     void BankItemWindow::updateSort(std::uint64_t nowMs) {
-        m_screen.get<ui::Element>("BankItemSort").setVisible(m_services.videoSettings().sortButtons);
+        const bool sortShown = m_services.videoSettings().sortButtons;
+        m_screen.get<ui::Element>("BankItemSort").setVisible(sortShown);
+        m_sortLocks.update(sortShown, isOpen());
         if (!isOpen()) {
             m_sorter.stop();
             return;
@@ -503,7 +507,7 @@ namespace client {
         if (!m_sorter.isRunning()) {
             return;
         }
-        if (const auto said = m_sorter.step(sortCellsOf(m_bank, m_services.items), nowMs, [this](const SortMove& move) {
+        if (const auto said = m_sorter.step(sortCellsOf(m_bank, m_services.items, m_sortLocks.places()), nowMs, [this](const SortMove& move) {
                 m_services.connection.send(protocol::bankMoveRequest(move.from, move.to));
             })) {
             m_messages.show(*said);

@@ -4,6 +4,7 @@
 #include "core/Bytes.h"
 
 #include <cstdint>
+#include <set>
 #include <vector>
 
 namespace protocol {
@@ -162,10 +163,12 @@ namespace protocol {
     /// @return The encoded payload.
     core::Bytes sortQueryRequest();
 
-    /// @brief Builds 23/250 (u8 1, u8 grid): ask the qol server to sort a grid.
+    /// @brief Builds 23/250 (u8 1, u8 grid, then u8 count and a u8 per locked place when any): ask the qol server to sort a grid.
+    /// @details A server without sort locks reads the grid and leaves the rest, so it sorts the locked places too.
     /// @param grid The grid to sort.
+    /// @param locked The places (1-based) the sort leaves alone: what lies there stays, and nothing is moved in.
     /// @return The encoded payload.
-    core::Bytes sortRequest(SortGrid grid);
+    core::Bytes sortRequest(SortGrid grid, const std::set<int>& locked = {});
 
     /// @brief Builds 23/3 (u8 1 last): drop items on the ground.
     /// @param bagSlot Bag place (u8).

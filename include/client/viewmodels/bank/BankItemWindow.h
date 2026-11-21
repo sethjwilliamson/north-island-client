@@ -2,6 +2,7 @@
 #define NORTH_ISLAND_CLIENT_VIEWMODELS_BANK_BANK_ITEM_WINDOW_H
 
 #include "client/rules/InventorySort.h"
+#include "client/viewmodels/items/SortLocks.h"
 #include "client/services/GameServices.h"
 #include "client/models/items/BagMarks.h"
 #include "client/rules/BagRequests.h"
@@ -183,6 +184,7 @@ namespace client {
             int m_quickWithdraws = 0; // the same for Shift click withdrawals
             std::function<void()> m_onClosed;
             InventorySorter m_sorter;
+            SortLocks m_sortLocks; // the qol lock button beside the sort button, and the places it keeps out of a sort
     };
 
 }

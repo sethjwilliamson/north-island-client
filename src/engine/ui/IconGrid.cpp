@@ -8,6 +8,10 @@ namespace ui {
 
         constexpr core::Point kCountOffset{2, 20}; // px offset of the item count text from the cell's top left
         constexpr int kCountWidth = 32; // px width of the item count text area
+        constexpr core::Color kLockBody{230, 186, 52, 255}; // qol lock mark: gold padlock body
+        constexpr core::Color kLockLine{48, 32, 8, 255}; // qol lock mark: dark brown padlock lines
+        constexpr core::Color kLockTint{255, 196, 40, 70}; // qol lock mark while picking: gold wash over a locked cell
+        constexpr core::Color kPickHover{255, 196, 40, 255}; // qol picking: gold outline round the cell under the mouse
 
         /// @brief Whether a point lies in a rectangle (right and bottom edges excluded).
         /// @param box The rectangle.
@@ -28,6 +32,7 @@ namespace ui {
         declareEvent("Press");
         declareEvent("MouseWheel");
         declareEvent("QuickMove");
+        declareEvent("Pick");
     }
 
     void IconGrid::applyAttribute(const std::string& name, const std::string& value, const LoadContext& context) {
@@ -105,6 +110,9 @@ namespace ui {
     core::Point IconGrid::hintOrigin(core::Point local) const { return cellPosition(cellAt(local)); }
 
     void IconGrid::onDoubleClick(UiContext& context, core::Point local) {
+        if (m_picking) {
+            return;
+        }
         m_doubleClicked = true;
         if (const int index = cellAt(local)) {
             raise(context, "DoubleClick", index);
@@ -112,6 +120,9 @@ namespace ui {
     }
 
     void IconGrid::onMouseDown(UiContext& context, MouseButton button, core::Point local) {
+        if (m_picking) {
+            return;
+        }
         if (button == MouseButton::Left) {
             m_pressedCell = cellAt(local);
             if (m_pressedCell != 0) {
@@ -143,7 +154,7 @@ namespace ui {
 
     void IconGrid::onMouseUp(UiContext& context, MouseButton button, core::Point local) {
         const int index = cellAt(local);
-        if (index == 0) {
+        if (index == 0 || m_picking) {
             return;
         }
         if (button == MouseButton::Left && index == m_pressedCell) {
@@ -269,6 +280,23 @@ namespace ui {
                     {m_countColor, gfx::TextEffect::Plain, std::nullopt},
                     kCountWidth
                 );
+            }
+        }
+        for (const int index : m_locked) {
+            // a small padlock in the cell's top right corner; while picking, a wash over the whole cell as well
+            const core::Point at = screenPosition + cellPosition(index);
+            if (m_picking) {
+                context.canvas.fillRectAlpha({at.x, at.y, m_cellSize, m_cellSize}, kLockTint);
+            }
+            const core::Point body{at.x + m_cellSize - 9, at.y + 7};
+            context.canvas.drawRectOutline({body.x + 1, body.y - 5, 5, 6}, kLockLine);
+            context.canvas.drawRectOutline({body.x - 1, body.y - 1, 9, 7}, kLockLine);
+            context.canvas.fillRect({body.x, body.y, 7, 5}, kLockBody);
+        }
+        if (m_picking && context.hoveredId == id()) {
+            if (const int index = dropIndexAt(context.mouse - screenPosition); index > 0) {
+                const core::Point at = screenPosition + cellPosition(index);
+                context.canvas.drawRectOutline({at.x, at.y, m_cellSize, m_cellSize}, kPickHover);
             }
         }
     }

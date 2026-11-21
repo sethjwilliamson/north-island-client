@@ -54,12 +54,14 @@ namespace client {
           m_hooks(std::move(hooks)),
           m_window(loadWindow(services, screen)),
           m_grid(screen.get<ui::IconGrid>("ExpBoxCells")),
-          m_check(screen.get<ui::ImageButton>("ExpBoxAuto")) {
+          m_check(screen.get<ui::ImageButton>("ExpBoxAuto")),
+          m_sortLocks(services, screen, "ExpBoxSortLock", "ExpBoxCells") {
         m_checkedPicture = services.pictures.find("btn_Check_1").value_or(gfx::PictureId{});
         m_uncheckedPicture = services.pictures.find("btn_UnCheck_1").value_or(gfx::PictureId{});
         screen.on("onExpBoxClose", [this](const ui::EventArgs&) { hide(); });
         screen.on("onExpBoxSort", [this](const ui::EventArgs&) {
-            m_services.connection.send(protocol::sortRequest(protocol::SortGrid::ExpBag));
+            m_sortLocks.setPicking(false);
+            m_services.connection.send(protocol::sortRequest(protocol::SortGrid::ExpBag, m_sortLocks.places()));
             m_sorter.startOnServer(m_screen.context().nowMs);
         });
         screen.on("onExpBoxConfirm", [this](const ui::EventArgs&) { confirm(); });
@@ -287,6 +289,7 @@ namespace client {
     void ExpBoxWindow::updateSort(std::uint64_t nowMs) {
         const bool shown = m_services.videoSettings().sortButtons && m_services.serverSorts;
         m_screen.get<ui::Element>("ExpBoxSort").setVisible(shown);
+        m_sortLocks.update(shown, isOpen());
         for (const auto& [name, x] : {std::pair<const char*, int>{"ExpBoxConfirm", kConfirmX}, {"ExpBoxCancel", kCancelX}}) {
             ui::Element& button = m_screen.get<ui::Element>(name);
             button.setBounds({x - (shown ? kSortShift : 0), button.bounds().y, button.bounds().width, button.bounds().height});

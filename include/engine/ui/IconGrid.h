@@ -7,6 +7,7 @@
 
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 
 namespace ui {
@@ -15,7 +16,7 @@ namespace ui {
     /// @details Original: drag and drop follows TSe_ItemImage.HandleMouseDown; frames and cells draw like TRe_ItemGridForm.DrawControl and TSe_ItemImage.DrawControl.
     class IconGrid : public Element {
         public:
-            /// @brief Creates a grid and declares its events (DoubleClick, Drop, Click, RightClick, Press, MouseWheel).
+            /// @brief Creates a grid and declares its events (DoubleClick, Drop, Click, RightClick, Press, MouseWheel, QuickMove, Pick).
             IconGrid();
 
             /// @brief Reads the IconGrid attributes (Columns, Rows, Pitch, PitchY, CellSize, FirstIndex, HoverColor, CountColor, Draggable, CellPicture, CellSource, OutlineColor, OutlineGapColor).
@@ -85,6 +86,28 @@ namespace ui {
                 raise(context, "QuickMove", index);
                 return true;
             }
+
+            /// @brief Turns picking on or off (qol): while on, a left press on a cell, empty or not, raises Pick with its number and
+            /// does nothing else (no drag, click, double click or right click); the Screen sends the press here first.
+            /// @param picking True to pick cells.
+            void setPicking(bool picking) { m_picking = picking; }
+
+            /// @brief Whether the grid is picking cells.
+            /// @return True while picking.
+            bool isPicking() const { return m_picking; }
+
+            /// @brief Raises Pick for the cell under a point (an item's own cells first, else the grid cell there).
+            /// @param context The UI context.
+            /// @param local The point relative to the grid.
+            void pick(UiContext& context, core::Point local) const {
+                if (const int index = dropIndexAt(local); index > 0) {
+                    raise(context, "Pick", index);
+                }
+            }
+
+            /// @brief Sets the cells drawn with a lock mark (qol: cells a sort leaves alone), empty cells too.
+            /// @param cells The cell numbers.
+            void setLocked(std::set<int> cells) { m_locked = std::move(cells); }
 
             /// @brief Whether the grid's things can be dragged (the Draggable attribute).
             /// @return True when draggable.
@@ -204,6 +227,8 @@ namespace ui {
             core::Color m_hoverColor{255, 108, 1, 80}; // orange hover highlight, alpha 80
             core::Color m_countColor{8, 8, 8, 255}; // item count text: near black
             std::map<int, IconCell> m_cells;
+            bool m_picking = false;
+            std::set<int> m_locked;
     };
 
 }
