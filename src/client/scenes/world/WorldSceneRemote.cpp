@@ -28,6 +28,8 @@ namespace client {
         hooks.closeForm = [this] { m_remoteWindow.close(); };
         hooks.playerId = [this] { return m_player.id; };
         hooks.chat = [this](const std::string& text) { m_chat.add(10, text); }; // chat channel 10: system line
+        hooks.keptForDelivery = [this](int itemId) { return m_autoDeliver.keeps(itemId); };
+        hooks.deliveryStatus = [this] { return m_remote.isElectron() ? m_autoDeliver.status() : std::string(); };
         return hooks;
     }
 
@@ -38,6 +40,8 @@ namespace client {
         hooks.onVehicle = [this] { return m_player.vehicle.has_value(); };
         hooks.playerId = [this] { return m_player.id; };
         hooks.systemMessage = [this](const std::string& text) { m_chat.add(10, text); }; // chat channel 10: system line
+        hooks.openDeliver = [this] { m_autoDeliverWindow.toggle(); };
+        hooks.starting = [this] { m_autoDeliverWindow.remoteStarting(); };
         return hooks;
     }
 

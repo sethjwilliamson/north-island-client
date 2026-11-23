@@ -138,7 +138,14 @@ namespace client {
                [this](int skillId, bool pet) { m_battleSkills.pushRecent(skillId, pet); },
                [this] { return m_map ? m_map->id() : 0; },
                [this](bool pet) { return m_battleSkills.recent(pet); },
-               [this](int itemId) { return m_inventory.nextSlotWith(itemId); },
+               [this](int itemId) {
+                   int slot = m_inventory.nextSlotWith(itemId);
+                   // not a stack loaded for the express (busy): the pet would be called back
+                   while (slot != 0 && m_bagMarks.useMark(slot) == BagMarks::kExpress && !m_bagMarks.isAvailable(slot)) {
+                       slot = m_inventory.nextSlotWith(itemId, slot);
+                   }
+                   return slot;
+               },
                [this](std::int32_t ownerId, int npcId) -> std::optional<std::pair<int, std::int32_t>> {
                    const int place = ownerId == m_player.id ? m_pets.placeOf(npcId) : 0;
                    const auto& pet = place != 0 ? m_pets.at(place) : std::nullopt;
@@ -873,7 +880,8 @@ namespace client {
                    const auto& active = m_pets.at(m_pets.activePlace());
                    return active ? active->info.npcId : 0;
                },
-               [this] { bagMarksChanged(); }}
+               [this] { bagMarksChanged(); },
+               [this] { return m_autoDeliver.isBusy(); }}
           ),
           m_forage(
               services,
@@ -1307,6 +1315,8 @@ namespace client {
           m_remote(services, m_inventory, m_bagMarks, m_status, m_pets, m_messages, remoteHooks()),
           m_remotePlus(services, m_screen, m_remote, m_pets, m_messages, remotePlusHooks()),
           m_remoteWindow(services, m_screen, m_remote, m_remotePlus, m_inventory, m_pets, m_status, m_messages, remoteWindowHooks()),
+          m_autoDeliver(services.items, m_inventory, m_bagMarks, autoDeliverHooks()),
+          m_autoDeliverWindow(services, m_screen, m_autoDeliver, m_inventory, m_pets, m_messages, autoDeliverWindowHooks()),
           m_makeQuestions(m_makeJobs, m_talk, m_messages, makeQuestionHooks()) {
         if (const auto sceneData = core::readFile(services.game.data("Data/SceneData.Dat"))) {
             m_scenes = formats::SceneTable::parse(*sceneData);
@@ -1346,6 +1356,9 @@ namespace client {
             m_itemWindow.setBagDrop("RemoteItem" + std::to_string(cell), [this, cell](int slot) {
                 m_remoteWindow.setKeptItem(cell, m_inventory.bagItem(slot).itemId);
             });
+        }
+        for (int cell = 1; cell <= AutoDeliverSettings::kItems; ++cell) {
+            m_itemWindow.setBagDrop("AutoDeliverItem" + std::to_string(cell), [this, cell](int slot) { m_autoDeliverWindow.dropItem(cell, slot); });
         }
         for (int key = 1; key <= 9; ++key) { // the 9 keys of the Remote Control Plus
             m_itemWindow.setBagDrop("PlusKey" + std::to_string(key), [this, key](int slot) { m_remotePlus.dropItem(key, m_inventory.bagItem(slot).itemId); });
@@ -5613,7 +5626,7 @@ namespace client {
         m_mainStatus.update(nowMs);
         m_retainFur.update();
         m_piano.update();
-        m_express.update();
+        m_express.update(nowMs);
         m_fishTank.update(nowMs);
         m_battleMain.update(nowMs);
         m_battleSkills.update();
@@ -5678,6 +5691,8 @@ namespace client {
         m_remote.update(nowMs);
         m_remoteWindow.update();
         m_remotePlus.update();
+        m_autoDeliverWindow.update();
+        m_autoDeliver.update(nowMs);
         m_carCase.update();
         markTeamLeaders();
         m_mall.update();
@@ -5737,8 +5752,8 @@ namespace client {
     }
 
     void WorldScene::paintWorld(gfx::Canvas& canvas, std::uint64_t nowMs) {
-        if (m_entering || !m_map || m_activeSport != 0 || m_quiz.isOpen() || m_movie.shown()) {
-            if (m_activeSport != 0 && !m_entering && m_map && !m_quiz.isOpen() && !m_movie.shown()) {
+        if (m_entering || !m_map || m_activeSport != 0 || m_quiz.isOpen() || m_movie.coversWorld()) {
+            if (m_activeSport != 0 && !m_entering && m_map && !m_quiz.isOpen() && !m_movie.coversWorld()) {
                 m_effects.drawUnder(canvas, m_camera.origin(), nowMs, effectConditions());
                 m_effects.drawOver(canvas, m_camera.origin(), nowMs, effectConditions());
             }

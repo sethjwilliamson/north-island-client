@@ -42,6 +42,7 @@ namespace client {
                 std::function<std::int32_t()> ownId;
                 std::function<int()> activePetKind;
                 std::function<void()> marksChanged;
+                std::function<bool()> autoDelivering;
             };
 
             static constexpr int kPlaces = 5;
@@ -74,6 +75,10 @@ namespace client {
             /// @return True when the window is visible.
             bool isOpen() const { return m_window.isVisible(); }
 
+            /// @brief Tells whether the pet of this form is off, or asked to go with the answer still out.
+            /// @return True while busy.
+            bool isBusy() const { return m_delivering || m_sentMs != 0; }
+
             /// @brief Shows the form for a pet, with the name list ready.
             /// @details Original: ShowCtrl and SetExpressPet.
             /// @param pet The pet that will be sent.
@@ -87,8 +92,9 @@ namespace client {
             /// @details Original: RefreshGridItems (the bag changed), RefreshExpressSlots.
             void refresh();
 
-            /// @brief Once a frame: keeps the list panel on the screen.
-            void update();
+            /// @brief Once a frame: keeps the list panel on the screen, and gives up waiting for a send's answer.
+            /// @param nowMs Current time in ms.
+            void update(std::uint64_t nowMs);
 
             /// @brief Handles the server's delivery state: 1 the pet is off, 2 it is back or was called back.
             /// @details Original: RecvPetDeliveryState (25/20).
@@ -108,7 +114,8 @@ namespace client {
             /// @param otherId Id of the other player.
             /// @param itemId Item moved.
             /// @param count Quantity moved.
-            void result(int kind, std::int32_t otherId, int itemId, int count);
+            /// @param onScreen False to leave it to the chat (Auto Deliver's trips).
+            void result(int kind, std::int32_t otherId, int itemId, int count, bool onScreen = true);
 
             /// @brief Calls the pet back (also on leaving the game).
             /// @details Original: StopExpress (25/21).
@@ -223,6 +230,8 @@ namespace client {
             std::string m_petName;
             bool m_delivering = false;
             bool m_stopped = false;
+            std::uint64_t m_sentMs = 0; // when Send asked, 0 once answered
+            std::uint64_t m_nowMs = 0;
             FigureAnimation m_animation;
     };
 

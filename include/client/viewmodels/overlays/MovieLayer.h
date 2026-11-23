@@ -38,6 +38,11 @@ namespace client {
             /// @return True when the layer should show.
             bool shown() const { return m_director.active() || m_director.frozen(); }
 
+            /// @brief Tells whether the movie hides the world: shown and not veiled by the SFW setting (a veiled movie draws nothing, but the
+            /// layer still takes the clicks so that none reaches the map).
+            /// @return True when the world is not to be painted.
+            bool coversWorld() const { return shown() && !m_director.veiled(); }
+
             /// @brief Steps the director once a frame and shows or hides the layer.
             /// @details Original: UpdateMovie.
             /// @param nowMs Current time in milliseconds.

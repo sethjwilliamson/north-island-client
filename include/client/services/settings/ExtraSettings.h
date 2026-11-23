@@ -86,6 +86,7 @@ namespace client {
         bool loadingSoundOn = true;
         bool sortButtons = false;
         PartyLogin partyLogin = PartyLogin::Off;
+        bool sfw = false; // safe for work: the story movies whose art the SFW list names (client/subsystems/movie/SfwArt.h) run without their picture, the world showing instead
         bool modernBag = false; // things in the bag and Storeroom move as in Minecraft: a click carries a stack, a right click takes half or puts one down, a held button spreads, Shift quick-moves
 #ifdef __ANDROID__
         SpeedupMode speedupMode = SpeedupMode::Auto; // a phone starts with the recommended speedups

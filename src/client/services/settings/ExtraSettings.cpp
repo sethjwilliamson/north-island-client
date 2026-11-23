@@ -218,7 +218,7 @@ namespace client {
                pixelScale == other.pixelScale && pixelArt == other.pixelArt && pixelArtPictures == other.pixelArtPictures &&
                pixelArtSprites == other.pixelArtSprites && pixelArtText == other.pixelArtText && hudScale == other.hudScale && display == other.display &&
                loadingMusicVolume == other.loadingMusicVolume && loadingMusicOn == other.loadingMusicOn && loadingSoundVolume == other.loadingSoundVolume &&
-               loadingSoundOn == other.loadingSoundOn && sortButtons == other.sortButtons && partyLogin == other.partyLogin && modernBag == other.modernBag && speedupMode == other.speedupMode && speedups == other.speedups &&
+               loadingSoundOn == other.loadingSoundOn && sortButtons == other.sortButtons && partyLogin == other.partyLogin && modernBag == other.modernBag && sfw == other.sfw && speedupMode == other.speedupMode && speedups == other.speedups &&
                controller == other.controller && lighting == other.lighting;
     }
 
@@ -299,6 +299,7 @@ namespace client {
                 }
             }
             readBool(*game, "modernBag", settings.modernBag);
+            readBool(*game, "sfw", settings.sfw);
         }
         if (const auto controller = root.find("controller"); controller != root.end() && controller->is_object()) {
             readBool(*controller, "enabled", settings.controller.enabled);
@@ -353,7 +354,7 @@ namespace client {
             {"loadingSoundVolume", loadingSoundVolume},
             {"loadingSoundOn", loadingSoundOn}
         };
-        root["game"] = {{"sortButtons", sortButtons}, {"partyLogin", partyLoginName(partyLogin)}, {"modernBag", modernBag}};
+        root["game"] = {{"sortButtons", sortButtons}, {"partyLogin", partyLoginName(partyLogin)}, {"modernBag", modernBag}, {"sfw", sfw}};
         root["controller"] = {
             {"enabled", controller.enabled},
             {"hideHud", controller.hideHud},

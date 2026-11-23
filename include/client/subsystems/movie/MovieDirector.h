@@ -67,6 +67,12 @@ namespace client {
             /// @return True when frozen.
             bool frozen() const { return m_screen.frozen(); }
 
+            /// @brief Tells whether the movie on screen is veiled: the SFW setting was on when it began and it shows a picture, or is a script, of the SFW lists
+            /// (SfwArt.h). A veiled movie runs as any other (steps, talks, music, its end and held state) but nothing of it is drawn: the world
+            /// shows instead. Not in the original.
+            /// @return True while such a movie (or its held last frame) is on screen.
+            bool veiled() const { return m_veiled; }
+
             /// @brief Handles a server 20/x message: the held picture goes and the HUD and world come back.
             void serverMessage();
 
@@ -254,6 +260,7 @@ namespace client {
             std::filesystem::path m_savedMusic;
             std::uint64_t m_resumeMs = 0;
             bool m_mapMovie = false;
+            bool m_veiled = false;
     };
 
 }

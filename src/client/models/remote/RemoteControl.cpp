@@ -149,8 +149,10 @@ namespace client {
         m_services.connection.send(protocol::remoteStopRequest());
     }
 
+    bool RemoteControl::isElectron() const { return m_itemSlot != 0 && m_inventory.bagItem(m_itemSlot).itemId == kElectronControl; }
+
     void RemoteControl::loadScript() {
-        if (m_inventory.bagItem(m_itemSlot).itemId != kElectronControl || !m_hooks.playerId) {
+        if (!isElectron() || !m_hooks.playerId) {
             m_script.unload();
             return;
         }
@@ -317,6 +319,9 @@ namespace client {
                 continue;
             }
             const auto record = m_services.items.find(item.itemId);
+            if (m_hooks.keptForDelivery(item.itemId)) {
+                continue;
+            }
             if (!record || record->type == kItemBattleType || m_marks.lockNotice(slot, 0) || !m_marks.isAvailable(slot)) {
                 continue;
             }
@@ -396,7 +401,7 @@ namespace client {
         if (m_dropPending == 2) { // drop pending state 2: the pass after something arrived
             for (int keep = 1; keep <= RemoteSettings::kKeepItems; ++keep) {
                 const int kept = m_settings.keepItems[static_cast<std::size_t>(keep)];
-                if (kept == 0) {
+                if (kept == 0 || m_hooks.keptForDelivery(kept)) {
                     continue;
                 }
                 for (int slot = 1; slot <= Inventory::kBagSlots; ++slot) {
@@ -555,6 +560,9 @@ namespace client {
         line(" Set the time for leaving" + colon, onOff(m_settings.ticks[8]), m_settings.ticks[8]);
         line(" Take off damaged equipment" + colon, onOff(m_settings.ticks[9]), m_settings.ticks[9]);
         line(" Automatically discard the selected item: ", onOff(m_settings.ticks[10]), m_settings.ticks[10]);
+        if (const std::string delivery = m_hooks.deliveryStatus(); !delivery.empty()) {
+            line(" Auto Deliver" + colon, " " + delivery, true);
+        }
     }
 
 }

@@ -1,7 +1,7 @@
 #include "client/viewmodels/pets/ExpressWindow.h"
 
 #include "client/rendering/painters/ItemCells.h"
-#include "client/rules/Stalling.h"
+#include "client/rules/ExpressItems.h"
 #include "gfx/TextStyle.h"
 #include "protocol/ExpressRequests.h"
 #include "ui/DrawingArea.h"
@@ -16,8 +16,7 @@ namespace client {
         constexpr int kShortMs = 1200; // short message display time, ms
         constexpr int kMessageMs = 1500; // delivery status message display time, ms
         constexpr int kLongMs = 2000; // long error message display time, ms
-        constexpr int kMagicMagnet = 34021; // item 34021: Magic Magnet (cannot be sent by express)
-        constexpr int kUnavailableFlag = 2; // item record flag bit value 2: cannot be transferred
+        constexpr std::uint64_t kAnswerMs = 5000; // longest wait for the answer to Send, ms
         constexpr int kStandingSlot = 11; // NPC action slot of the standing pose
         constexpr int kDeliveringSlot = 3; // NPC action slot of the delivering pose
         constexpr int kScreenWidth = 800; // game screen width, px
@@ -174,11 +173,6 @@ namespace client {
             return;
         }
         const protocol::ItemInstance& item = m_inventory.bagItem(slot);
-        const auto record = m_services.items.find(item.itemId);
-        if (!record || (record->flags & kUnavailableFlag) != 0) {
-            m_messages.show("Unavailable for expres", kLongMs);
-            return;
-        }
         if (m_marks.vehicleState(slot) != 0) {
             m_messages.show("Unable to perform this action while using a vehicle", kLongMs);
             return;
@@ -186,16 +180,8 @@ namespace client {
         if (m_delivering) {
             return;
         }
-        if (record->cellWidth > 1 || record->cellHeight > 1) {
-            m_messages.show("Express failed because this item is oversized", kLongMs);
-            return;
-        }
-        if (item.lookItemId != 0) {
-            m_messages.show("Pose Items can't be delivered", kLongMs);
-            return;
-        }
-        if (isNonTransferable(item.insertItemId)) {
-            m_messages.show("This item cannot be transferred", kLongMs);
+        if (const auto refusal = expressRefusal(m_services.items, item)) {
+            m_messages.show(*refusal, kLongMs);
             return;
         }
         if (const auto notice = m_marks.lockNotice(slot, 0)) {
@@ -204,10 +190,6 @@ namespace client {
         }
         if (!m_marks.isAvailable(slot)) {
             m_messages.show("Unable to operate when the item is locked", kLongMs);
-            return;
-        }
-        if (item.itemId == kMagicMagnet) {
-            m_messages.show("Unavailable for expres", kLongMs);
             return;
         }
         if (m_downSlot != slot || m_marks.useMark(slot) != 0) {
@@ -256,6 +238,10 @@ namespace client {
         if (m_delivering) {
             return;
         }
+        if (m_hooks.autoDelivering()) {
+            m_messages.show("Auto Deliver's pet is out, send again when it is back", kLongMs);
+            return;
+        }
         if (m_recipient.text().empty()) {
             m_messages.show("Express failed because no one to send", kLongMs);
             return;
@@ -273,6 +259,7 @@ namespace client {
             }
         }
         m_services.connection.send(protocol::expressStartRequest(m_petKind, *target, items));
+        m_sentMs = m_nowMs;
     }
 
     void ExpressWindow::stop() {
@@ -312,6 +299,7 @@ namespace client {
     }
 
     void ExpressWindow::deliveryState(std::int32_t petKind, int state) {
+        m_sentMs = 0;
         const int place = m_pets.placeOf(petKind);
         if (place == 0 || !m_pets.at(place)) {
             return;
@@ -331,6 +319,7 @@ namespace client {
     }
 
     void ExpressWindow::failed(int code, int itemId) {
+        m_sentMs = 0;
         std::string text;
         switch (code) {
             case 1: { // 25/22 code 1: not enough quantity of the item
@@ -350,7 +339,7 @@ namespace client {
         m_messages.show(text, kMessageMs);
     }
 
-    void ExpressWindow::result(int kind, std::int32_t otherId, int itemId, int count) {
+    void ExpressWindow::result(int kind, std::int32_t otherId, int itemId, int count, bool onScreen) {
         const std::string other = m_hooks.playerName(otherId);
         if (other.empty() || (kind != 1 && kind != 2)) {
             return;
@@ -359,7 +348,9 @@ namespace client {
         const std::string item = record ? record->name : std::string();
         const std::string text = kind == 1 ? other + " send " + item + " " + std::to_string(count) + " quantity"
                                            : "Expression Successful to " + other + " " + item + " " + std::to_string(count) + " quantity";
-        m_messages.show(text, kShortMs);
+        if (onScreen) {
+            m_messages.show(text, kShortMs);
+        }
         m_hooks.chatLine(otherId, text);
     }
 
@@ -407,7 +398,11 @@ namespace client {
         }
     }
 
-    void ExpressWindow::update() {
+    void ExpressWindow::update(std::uint64_t nowMs) {
+        m_nowMs = nowMs;
+        if (m_sentMs != 0 && nowMs - m_sentMs >= kAnswerMs) {
+            m_sentMs = 0;
+        }
         if (m_window.isVisible()) {
             placeNames();
         }

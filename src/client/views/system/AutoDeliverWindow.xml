@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Electron Control's Auto Deliver (not in the game), opened by the Deliver button of the Remote Control's window: who the
+     pet takes items to, which pet goes and the items it takes; view model: viewmodels/system/AutoDeliverWindow.cpp.  Made of
+     the game's own pictures: the white form frame (form_module), the text boxes (Panel26) and the blank buttons. -->
+<Panel Name="AutoDeliverLayer" Bounds="0,0,800,600">
+  <Window Name="AutoDeliver" Escape="onAutoDeliverCancel" Position="2,110" Size="284,342" Hint="Auto Deliver" Visible="false">
+    <!-- form_module_1: Borders keep the ornaments whole; an odd height keeps its two-row stripes in step -->
+    <Panel Name="AutoDeliverFrame" Bounds="0,0,284,341" Skin="form_module_1" SkinSource="0,0,223,223" Borders="64,122,80,45"/>
+    <Label Name="AutoDeliverTitle" Position="34,22" Text="Auto Deliver" FontColor="#1E3C78" Effect="Plain"/>
+    <ImageButton Name="AutoDeliverCloseSmall" Picture="Btn_Close_s_1" Position="236,26" Size="18,18" Click="onAutoDeliverCancel"/>
+    <CheckBox Name="AutoDeliverOn" Picture="btn_UnCheck_1" CheckedPicture="btn_Check_1" Position="24,54"/>
+    <Label Name="AutoDeliverOnText" Position="46,55" Text="On while the remote runs" FontColor="#080808" Effect="Plain"/>
+    <Label Name="AutoDeliverToText" Position="24,84" Text="To" FontColor="#080808" Effect="Plain"/>
+    <TextBox Name="AutoDeliverTo" Bounds="56,82,116,14" Skin="Panel26" SkinSource="0,0,103,21" Borders="1,1,1,1"
+             HitTest="true" MaxLength="14" AllowPaste="true" FontColor="#0000FF"/>
+    <ImageButton Name="AutoDeliverNames" Picture="Btn_ArrowDn_1" Position="176,82" Hint="Your characters, team, friends and guild" Click="onAutoDeliverNames"/>
+    <Label Name="AutoDeliverOnline" Position="200,84" FontColor="#1E7828" Effect="Plain"/>
+    <Label Name="AutoDeliverOffline" Position="200,84" Text="offline" FontColor="#C80000" Effect="Plain" Visible="false"/>
+    <Label Name="AutoDeliverPetText" Position="24,114" Text="Pet" FontColor="#080808" Effect="Plain"/>
+    <ImageButton Name="AutoDeliverPetBack" Picture="Btn_ArrowL_4" Position="60,110" Click="onAutoDeliverPet"/>
+    <Panel Name="AutoDeliverPetField" Bounds="80,108,152,21" Skin="panel16" SkinSource="0,0,120,21" Borders="4,4,4,4">
+      <Label Name="AutoDeliverPet" Bounds="0,4,152,15" Align="Center" FontColor="#1E3C78" Effect="Plain"/>
+    </Panel>
+    <ImageButton Name="AutoDeliverPetNext" Picture="Btn_ArrowR_4" Position="234,110" Click="onAutoDeliverPet"/>
+    <Label Name="AutoDeliverItemsText" Position="24,142" Text="Send these (drag from bag)" FontColor="#080808" Effect="Plain"/>
+    <DrawingArea Name="AutoDeliverItem1" Bounds="45,162,34,34" HitTest="true" RightMouseUp="onAutoDeliverItemClear"/>
+    <DrawingArea Name="AutoDeliverItem2" Bounds="85,162,34,34" HitTest="true" RightMouseUp="onAutoDeliverItemClear"/>
+    <DrawingArea Name="AutoDeliverItem3" Bounds="125,162,34,34" HitTest="true" RightMouseUp="onAutoDeliverItemClear"/>
+    <DrawingArea Name="AutoDeliverItem4" Bounds="165,162,34,34" HitTest="true" RightMouseUp="onAutoDeliverItemClear"/>
+    <DrawingArea Name="AutoDeliverItem5" Bounds="205,162,34,34" HitTest="true" RightMouseUp="onAutoDeliverItemClear"/>
+    <DrawingArea Name="AutoDeliverItem6" Bounds="45,202,34,34" HitTest="true" RightMouseUp="onAutoDeliverItemClear"/>
+    <DrawingArea Name="AutoDeliverItem7" Bounds="85,202,34,34" HitTest="true" RightMouseUp="onAutoDeliverItemClear"/>
+    <DrawingArea Name="AutoDeliverItem8" Bounds="125,202,34,34" HitTest="true" RightMouseUp="onAutoDeliverItemClear"/>
+    <DrawingArea Name="AutoDeliverItem9" Bounds="165,202,34,34" HitTest="true" RightMouseUp="onAutoDeliverItemClear"/>
+    <DrawingArea Name="AutoDeliverItem10" Bounds="205,202,34,34" HitTest="true" RightMouseUp="onAutoDeliverItemClear"/>
+    <Label Name="AutoDeliverStatus" Bounds="24,244,236,30" WordWrap="true" FontColor="#1E3C78" Effect="Plain"/>
+    <ImageButton Name="AutoDeliverSendNow" Picture="Btn_Module_2" Position="24,280" Text="Send now" Hint="One trip now, part stacks too" Click="onAutoDeliverSendNow"/>
+    <ImageButton Name="AutoDeliverOk" Picture="btn_ok_1" Position="142,280" Click="onAutoDeliverOk"/>
+    <ImageButton Name="AutoDeliverCancel" Picture="btn_cancel_1" Position="202,280" Click="onAutoDeliverCancel"/>
+    <!-- the list of names, over the pet and the items while it shows -->
+    <Panel Name="AutoDeliverNameList" Bounds="24,102,236,172" HitTest="true" Skin="panel10" SkinSource="0,0,50,50" Borders="7,7,7,7" Visible="false">
+      <ListBox Name="AutoDeliverNameRows" Bounds="8,8,220,154" RowHeight="22" FontColor="#FFFFFF" FocusFrame="false" Select="onAutoDeliverPick"/>
+    </Panel>
+  </Window>
+</Panel>

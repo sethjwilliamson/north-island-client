@@ -152,6 +152,7 @@ namespace client {
           m_petDeathLimit(screen.get<ui::TextBox>("RemotePetDeathLimit")),
           m_leaveMinutes(screen.get<ui::TextBox>("RemoteLeaveMinutes")),
           m_plusSet(screen.get<ui::ImageButton>("RemotePlusSet")),
+          m_deliverSet(screen.get<ui::ImageButton>("RemoteDeliverSet")),
           m_rail(services.pictures.find("Panel41").value_or(gfx::PictureId{})),
           m_railFill(services.pictures.find("Panel40").value_or(gfx::PictureId{})),
           m_thumb(services.pictures.find("bar_w4").value_or(gfx::PictureId{})),
@@ -183,6 +184,11 @@ namespace client {
         screen.on("onRemotePlus", [this](const ui::EventArgs&) {
             if (m_inventory.bagItem(m_remote.itemSlot()).itemId != kRemoteControl) {
                 m_plus.toggle();
+            }
+        });
+        screen.on("onRemoteDeliver", [this](const ui::EventArgs&) {
+            if (m_remote.isElectron()) {
+                m_hooks.openDeliver();
             }
         });
         screen.on("onRemoteStop", [this](const ui::EventArgs&) { m_remote.stop(); });
@@ -328,6 +334,7 @@ namespace client {
             return;
         }
         m_plusSet.setVisible(itemId != kRemoteControl);
+        m_deliverSet.setVisible(m_remote.isElectron());
     }
 
     void RemoteControlWindow::toggle(int tick) {
@@ -486,6 +493,7 @@ namespace client {
         }
         settings.itemTo = numberIn(m_to);
         settings.keepItems = m_kept;
+        m_hooks.starting();
         m_remote.start(settings.ticks[2]); // tick 2 is passed to start
         m_plus.save();
         saveFile();

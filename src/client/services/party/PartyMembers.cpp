@@ -166,6 +166,7 @@ namespace client {
         services.partyEventAnswered = nullptr;
         services.partyEventEnded = nullptr;
         services.walkElsewhere = nullptr;
+        services.otherOwnNames = nullptr;
     }
 
     void PartyMembers::setUpPlayed(GameServices& services) {
@@ -196,6 +197,7 @@ namespace client {
             forMirroringMembers([](Member&, WorldScene& world) { world.mirrorLeaderEventEnded(); });
         };
         services.walkElsewhere = [this, &services](core::Point mapPoint) { return walkToLeader(services, mapPoint); };
+        services.otherOwnNames = [this, &services] { return otherOwnNames(services); };
         if (m_setUpPlayed) {
             m_setUpPlayed(services);
         }
@@ -232,6 +234,7 @@ namespace client {
         services.partyEventAnswered = nullptr;
         services.partyEventEnded = nullptr;
         services.walkElsewhere = [this, &services](core::Point mapPoint) { return walkToLeader(services, mapPoint); };
+        services.otherOwnNames = [this, &services] { return otherOwnNames(services); };
     }
 
     WorldScene* PartyMembers::worldOf(const GameServices& services) {
@@ -275,6 +278,25 @@ namespace client {
             return false; // led by someone else's character, or the leader is elsewhere
         }
         return leader->walkTo(mapPoint);
+    }
+
+    std::vector<std::string> PartyMembers::otherOwnNames(const GameServices& services) {
+        std::vector<std::string> names;
+        const auto add = [&](const GameServices& other) {
+            if (&other == &services) {
+                return;
+            }
+            if (const WorldScene* world = worldOf(other); world && world->inWorld()) {
+                names.push_back(world->ownName());
+            }
+        };
+        add(played());
+        for (const auto& member : m_members) {
+            if (!member->leavingSinceMs) {
+                add(member->bundle->services);
+            }
+        }
+        return names;
     }
 
     bool PartyMembers::isOwnCharacter(std::int32_t playerId) const {

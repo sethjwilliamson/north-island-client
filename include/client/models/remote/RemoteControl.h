@@ -43,6 +43,8 @@ namespace client {
                 std::function<void()> closeForm;
                 std::function<std::int32_t()> playerId;
                 std::function<void(const std::string&)> chat; // a line in the chat's system channel
+                std::function<bool(int itemId)> keptForDelivery; // Auto Deliver sends it: neither drunk nor discarded
+                std::function<std::string()> deliveryStatus; // Auto Deliver's line of the information, empty for none
             };
 
             /// @brief Creates the remote control.
@@ -66,6 +68,10 @@ namespace client {
             /// @brief Tells whether the Remote Control is running.
             /// @return True while on.
             bool isOn() const { return m_on; }
+
+            /// @brief Tells whether the item the settings window was opened for, or that runs, is the Electron Control.
+            /// @return True for the Electron Control (34128).
+            bool isElectron() const;
 
             /// @brief Gets the bag place of the Remote Control item (original FAutoPlayItemSlot).
             /// @return The place, 0 for none.

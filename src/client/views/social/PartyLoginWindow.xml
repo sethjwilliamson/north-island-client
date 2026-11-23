@@ -21,8 +21,8 @@
     <Label Name="PartyLoginSecondText" Position="24,116" Text="Second character" FontColor="#080808" Effect="Plain"/>
     <CheckBox Name="PartyLoginSecond" Picture="btn_UnCheck_1" CheckedPicture="btn_Check_1" Position="218,114"/>
     <Label Name="PartyLoginError" Bounds="24,138,214,15" FontColor="#C80000" Effect="Plain"/>
-    <ImageButton Name="PartyLoginCancel" Picture="btn_cancel_1" Position="134,162" Click="onPartyLoginCancel"
+    <ImageButton Name="PartyLoginCancel" Picture="btn_cancel_1" Position="134,170" Click="onPartyLoginCancel"
                  ClickSound="" ReleaseSound="sound/wav0154.wav"/>
-    <ImageButton Name="PartyLoginOk" Picture="btn_ok_1" Position="70,162" Click="onPartyLoginOk"/>
+    <ImageButton Name="PartyLoginOk" Picture="btn_ok_1" Position="70,170" Click="onPartyLoginOk"/>
   </Window>
 </Panel>

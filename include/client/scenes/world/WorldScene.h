@@ -27,6 +27,7 @@
 #include "client/models/pets/RebornWish.h"
 #include "client/rendering/effects/StarSky.h"
 #include "client/models/character/QuestMarks.h"
+#include "client/models/remote/AutoDeliver.h"
 #include "client/models/remote/RemoteControl.h"
 #include "client/models/social/MateVitals.h"
 #include "client/models/social/TeamMate.h"
@@ -84,6 +85,7 @@
 #include "client/viewmodels/social/LoveFlowerWindow.h"
 #include "client/viewmodels/social/LoveFlowerMessageWindow.h"
 #include "client/viewmodels/system/RemoteControlWindow.h"
+#include "client/viewmodels/system/AutoDeliverWindow.h"
 #include "client/viewmodels/system/RemotePlusWindow.h"
 #include "client/viewmodels/bank/BankItemWindow.h"
 #include "client/viewmodels/bank/AtmDepositWindow.h"
@@ -2803,6 +2805,18 @@ namespace client {
             /// @return The hooks.
             RemotePlusWindow::Hooks remotePlusHooks();
 
+            /// @brief The hooks Auto Deliver calls back with (WorldSceneAutoDeliver.cpp).
+            /// @return The hooks.
+            AutoDeliver::Hooks autoDeliverHooks();
+
+            /// @brief The hooks the Auto Deliver window calls back with.
+            /// @return The hooks.
+            AutoDeliverWindow::Hooks autoDeliverWindowHooks();
+
+            /// @brief Whom Auto Deliver offers: the other own characters, the team, the friends and the guild.
+            /// @return The names, each once.
+            std::vector<std::string> deliveryNames() const;
+
             /// @brief Uses a Remote Control item.
             /// @param bagSlot Bag place.
             /// @return True when handled.
@@ -3000,6 +3014,15 @@ namespace client {
             /// @brief The Express button of a pet's page. Original: OpenPetExpress.
             /// @param pet The pet.
             void openPetExpress(const Pet& pet);
+
+            /// @brief Why the player may not use the pet express (level, online time).
+            /// @return The line to show, nothing when allowed.
+            std::optional<std::string> expressUseRefusal() const;
+
+            /// @brief Why a pet may not be sent by express (fighting, in a trade, on sale, foraging).
+            /// @param place The pet's place 1..4.
+            /// @return The line to show, nothing when it may.
+            std::optional<std::string> petExpressRefusal(int place) const;
 
             /// @brief The names the express form lists from the team.
             /// @return The team members' names.
@@ -4615,6 +4638,14 @@ namespace client {
             RemoteControl m_remote;
             RemotePlusWindow m_remotePlus;
             RemoteControlWindow m_remoteWindow;
+            AutoDeliver m_autoDeliver;
+            AutoDeliverWindow m_autoDeliverWindow;
+            /// @brief How the bag was before the Auto Deliver window put it beside itself.
+            struct BagBeforeDeliver {
+                bool open = false;
+                core::Point at;
+            };
+            std::optional<BagBeforeDeliver> m_bagBeforeDeliver;
             MakeQuestions m_makeQuestions;
             int m_makePiece = 0;
             int m_pressedShelfItem = 0;

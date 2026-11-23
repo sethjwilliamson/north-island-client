@@ -153,33 +153,44 @@ namespace client {
     }
 
     void WorldScene::openPetExpress(const Pet& pet) {
-        if (ownLevel() < 10) { // minimum player level for the pet express
-            m_messages.show("Level 10 is required", 2000); // message display time in ms
+        if (const auto refusal = expressUseRefusal()) {
+            m_messages.show(*refusal, 2000); // message display time in ms
             return;
         }
-        if (!m_enoughOnlineTime) {
-            m_messages.show("Not enough time online, cannot use this function", 2000); // message display time in ms
-            return;
-        }
-        const int place = m_pets.placeOf(pet.info.npcId);
-        const auto& active = m_pets.at(m_pets.activePlace());
-        if (active && active->info.npcId == pet.info.npcId) {
-            m_messages.show("Pets in a fight cannot be expressed", 1200); // message display time in ms
-            return;
-        }
-        if (place != 0 && m_petTrade.offeredPlace() == place) {
-            m_messages.show("Pet in trade cannot be expressed", 1200); // message display time in ms
-            return;
-        }
-        if (place != 0 && m_petStall.petInStall(place)) {
-            m_messages.show("Pet being sold cannot be delivered", 1200); // message display time in ms
-            return;
-        }
-        if (place != 0 && m_forage.isForaging(place)) {
-            m_messages.show("The pet looking for items can't be delievered", 1200); // message display time in ms
+        if (const auto refusal = petExpressRefusal(m_pets.placeOf(pet.info.npcId))) {
+            m_messages.show(*refusal, 1200); // message display time in ms
             return;
         }
         m_express.open(pet);
+    }
+
+    std::optional<std::string> WorldScene::expressUseRefusal() const {
+        if (ownLevel() < 10) { // minimum player level for the pet express
+            return "Level 10 is required";
+        }
+        if (!m_enoughOnlineTime) {
+            return "Not enough time online, cannot use this function";
+        }
+        return std::nullopt;
+    }
+
+    std::optional<std::string> WorldScene::petExpressRefusal(int place) const {
+        if (place == 0) {
+            return std::nullopt;
+        }
+        if (m_pets.activePlace() == place) {
+            return "Pets in a fight cannot be expressed";
+        }
+        if (m_petTrade.offeredPlace() == place) {
+            return "Pet in trade cannot be expressed";
+        }
+        if (m_petStall.petInStall(place)) {
+            return "Pet being sold cannot be delivered";
+        }
+        if (m_forage.isForaging(place)) {
+            return "The pet looking for items can't be delievered";
+        }
+        return std::nullopt;
     }
 
     std::vector<std::string> WorldScene::teamNames() const {
@@ -200,7 +211,11 @@ namespace client {
         return names;
     }
 
-    void WorldScene::onExpressState(std::int32_t petKind, int state) { m_express.deliveryState(petKind, state); }
+    void WorldScene::onExpressState(std::int32_t petKind, int state) {
+        if (!m_autoDeliver.deliveryState(petKind, state, m_express.isBusy())) {
+            m_express.deliveryState(petKind, state);
+        }
+    }
 
     void WorldScene::onNpcWalkBy(std::int32_t npcId, int mode) {
         if (const auto info = m_services.npcs.find(npcId); info && m_map) {
@@ -216,8 +231,15 @@ namespace client {
         m_mapPets.petWalk(m_player.id, *npc, mode, m_map->width(), m_nowMs);
     }
 
-    void WorldScene::onExpressFailed(int code, int itemId) { m_express.failed(code, itemId); }
+    void WorldScene::onExpressFailed(int code, int itemId) {
+        if (!m_autoDeliver.failed(code, itemId)) {
+            m_express.failed(code, itemId);
+        }
+    }
 
-    void WorldScene::onExpressResult(int kind, std::int32_t otherId, int itemId, int count) { m_express.result(kind, otherId, itemId, count); }
+    void WorldScene::onExpressResult(int kind, std::int32_t otherId, int itemId, int count) {
+        const bool automatic = m_autoDeliver.result(kind, otherId);
+        m_express.result(kind, otherId, itemId, count, !automatic);
+    }
 
 }

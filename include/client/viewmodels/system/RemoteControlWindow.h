@@ -37,6 +37,8 @@ namespace client {
                 std::function<bool()> onVehicle;
                 std::function<std::int32_t()> playerId;
                 std::function<void(const std::string&)> systemMessage;
+                std::function<void()> openDeliver; // the Deliver button
+                std::function<void()> starting; // OK, before the Remote Control starts
             };
 
             /// @brief Loads the window and wires its events.
@@ -167,6 +169,7 @@ namespace client {
             ui::TextBox& m_petDeathLimit;
             ui::TextBox& m_leaveMinutes;
             ui::ImageButton& m_plusSet;
+            ui::ImageButton& m_deliverSet;
             std::array<bool, RemoteSettings::kTicks + 1> m_ticks{};
             std::array<PercentSlider, 4> m_sliders;
             std::array<bool, 4> m_held{};

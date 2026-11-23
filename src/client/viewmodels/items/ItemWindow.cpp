@@ -573,7 +573,7 @@ namespace client {
         m_level.setText(std::to_string(shown.level));
         const auto pet = shownPet();
         m_potential.setVisible(m_columnMode != 2 && (!pet || pet->get().info.mercenary == 0));
-        m_express.setVisible(m_columnMode != 2 && pet && pet->get().info.type == 1);
+        m_express.setVisible(m_columnMode != 2 && pet && pet->get().info.type == PetTeam::kExpressType);
     }
 
     void ItemWindow::paintBar(gfx::Canvas& canvas, core::Point at, int bar, double ratio) {

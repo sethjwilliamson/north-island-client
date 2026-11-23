@@ -48,6 +48,9 @@ namespace client {
     }
 
     void MovieLayer::paint(gfx::Canvas& canvas, std::uint64_t nowMs) {
+        if (m_director.veiled()) {
+            return; // SFW: the world painted under the layer shows instead of the movie
+        }
         const core::Rect window = m_services.zoom.window();
         const core::Rect part = m_services.zoom.shown(nowMs);
         const bool zoomed = !(part == window) && part.width < window.width;

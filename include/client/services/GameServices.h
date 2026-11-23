@@ -74,6 +74,7 @@ namespace client {
         std::function<void(int channel, const std::string& line, std::int32_t senderId)> chatHeard; // a member heard a chat line (its whispers and team lines go to the selected character's chat)
         std::function<std::string(const std::string& account, const std::string& password, int slot)> partyLogIn;
         std::function<void(std::int32_t playerId)> partyLogOut;
+        std::function<std::vector<std::string>()> otherOwnNames = {}; // the names of the qol client's other own characters in the world
         std::function<void(bool centre, const std::string& text, int durationMs)> partyMessage;
         std::function<bool()> partyMirrorsNpcs; // the own characters in the selected character's team on its map follow its NPC talk and doors (qol)
         std::function<void(bool on)> setPartyMirrorsNpcs;

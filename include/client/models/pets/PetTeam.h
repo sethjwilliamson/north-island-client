@@ -17,6 +17,7 @@ namespace client {
     class PetTeam {
         public:
             static constexpr int kPlaces = 4;
+            static constexpr int kExpressType = 1; // Npc.dat type 1: the pets that can be sent by express
 
             /// @brief Creates an empty team.
             /// @param formula Formula data for HP/SP maxima.

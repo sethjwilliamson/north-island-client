@@ -265,6 +265,14 @@ namespace client {
             /// @param nowMs Current time in ms.
             void updateSort(std::uint64_t nowMs);
 
+            /// @brief Moves the window.
+            /// @param at Its new top left corner.
+            void setPosition(core::Point at) { m_window.setPosition(at); }
+
+            /// @brief The bag's places the sort lock holds (qol).
+            /// @return The places (1-based).
+            const std::set<int>& lockedPlaces() const { return m_sortLocks.places(); }
+
             /// @brief The server's sort of this grid ended.
             /// @param result Result code.
             /// @details Server 23/250 2.

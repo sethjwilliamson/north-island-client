@@ -174,6 +174,11 @@ namespace client {
             const bool checked = m_screen.get<ui::CheckBox>("SettingsModernBag").isChecked();
             changeVideo([checked](ExtraSettings& video) { video.modernBag = checked; });
         });
+        screen.on("onSettingsSfw", [this](const ui::EventArgs&) {
+            m_video = m_services.videoSettings();
+            const bool checked = m_screen.get<ui::CheckBox>("SettingsSfw").isChecked();
+            changeVideo([checked](ExtraSettings& video) { video.sfw = checked; });
+        });
         layoutGame();
         layoutVideo();
         screen.on("onSettingsRemember", [this](const ui::EventArgs&) {
@@ -607,6 +612,7 @@ namespace client {
                      : m_video.partyLogin == ExtraSettings::PartyLogin::Advanced ? "Advanced"
                                                                                  : "Off");
         m_screen.get<ui::CheckBox>("SettingsModernBag").setChecked(m_video.modernBag);
+        m_screen.get<ui::CheckBox>("SettingsSfw").setChecked(m_video.sfw);
         m_screen.get<ui::CheckBox>("SettingsPixelArtOnPictures").setChecked(m_video.pixelArtPictures);
         m_screen.get<ui::CheckBox>("SettingsPixelArtOnSprites").setChecked(m_video.pixelArtSprites);
         m_screen.get<ui::CheckBox>("SettingsPixelArtOnText").setChecked(m_video.pixelArtText);

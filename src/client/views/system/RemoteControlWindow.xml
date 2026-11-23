@@ -20,6 +20,8 @@
     <TextBox Name="RemoteTo" Bounds="140,114,30,18" HitTest="true" CharFilter="Digits" MaxLength="2" AllowPaste="true" FontColor="#080808"/>
     <TextBox Name="RemoteFrom" Bounds="93,114,30,18" HitTest="true" CharFilter="Digits" MaxLength="2" AllowPaste="true" FontColor="#080808"/>
     <ImageButton Name="RemotePlusSet" Picture="Btn_PlusSet" Position="115,46" Size="61,20" Visible="false" Click="onRemotePlus"/>
+    <!-- not in the game: the Electron Control's Auto Deliver (AutoDeliverWindow) -->
+    <ImageButton Name="RemoteDeliverSet" Picture="Btn_Module_2" Position="115,69" Text="Deliver" Hint="Send chosen items to a player by pet express" Visible="false" Click="onRemoteDeliver"/>
     <TextBox Name="RemoteLeaveMinutes" Bounds="93,333,40,18" HitTest="true" CharFilter="Digits" MaxLength="4" AllowPaste="true" FontColor="#080808"/>
     <TextBox Name="RemotePetDeathLimit" Bounds="132,311,30,18" HitTest="true" CharFilter="Digits" MaxLength="3" AllowPaste="true" FontColor="#080808"/>
     <TextBox Name="RemoteDeathLimit" Bounds="132,289,30,18" HitTest="true" CharFilter="Digits" MaxLength="3" AllowPaste="true" FontColor="#080808"/>

@@ -1,5 +1,7 @@
 #include "client/subsystems/movie/MovieDirector.h"
 
+#include "client/subsystems/movie/SfwArt.h"
+
 #include "core/FileSystem.h"
 #include "core/Log.h"
 
@@ -10,6 +12,16 @@
 namespace client {
 
     namespace {
+
+        constexpr core::Size kVeiledGroundSize{832, 640}; // size of the story illustrations, given to a veiled movie's player instead of loading its ground
+
+        /// @brief Tells whether a script shows a picture of the SFW list, as its ground or as a moving picture.
+        /// @param script The parsed script.
+        /// @return True when one is listed.
+        bool showsSfwArt(const formats::MovieScript& script) {
+            return (script.ground.kind() != formats::MovieGround::Kind::Map && sfwBlocked(script.ground.pictureName())) ||
+                   std::any_of(script.pictures.begin(), script.pictures.end(), [](const formats::MoviePicture& picture) { return sfwBlocked(picture.name); });
+        }
 
         constexpr std::array<const char*, 8> kStoryScripts{"15010", "14035", "25094", "25099", "25110", "25129", "25132", "25139"};
 
@@ -89,7 +101,12 @@ namespace client {
             m_soundTable = table ? formats::SoundTable::parse(*table) : formats::SoundTable();
         }
         MovieHost& host = *this;
-        if (parsed->ground.kind() == formats::MovieGround::Kind::Map) {
+        const bool veiled = m_services.videoSettings().sfw && (sfwBlockedScript(script) || showsSfwArt(*parsed));
+        if (veiled) {
+            // the listed picture is never loaded; the player runs on a ground of the illustrations' size that nothing draws
+            core::logInfo("SFW: the movie ", script, " plays over the world, without its picture");
+            m_player = std::make_unique<MoviePlayer>(*parsed, *m_soundTable, host, kVeiledGroundSize, nowMs);
+        } else if (parsed->ground.kind() == formats::MovieGround::Kind::Map) {
             const auto map = m_hooks.mapGround(std::atoi(parsed->ground.pictureName().c_str()));
             if (!map) {
                 core::logWarning("the movie ", script, " has no map ", parsed->ground.pictureName());
@@ -105,8 +122,9 @@ namespace client {
             const gfx::Picture& picture = m_services.pictures.picture(*ground);
             m_player = std::make_unique<MoviePlayer>(*parsed, *m_soundTable, host, core::Size{picture.width(), picture.height()}, nowMs);
         }
+        m_veiled = veiled;
         m_musicSaved = musicWasPlaying;
-        m_mapMovie = parsed->ground.kind() == formats::MovieGround::Kind::Map;
+        m_mapMovie = !veiled && parsed->ground.kind() == formats::MovieGround::Kind::Map;
         m_jrp = parsed->ground.kind() == formats::MovieGround::Kind::Jrp;
         // role surfaces 99901 to 99904 are the team's looks
         m_teamLayout = std::any_of(parsed->roles.begin(), parsed->roles.end(), [](const formats::MovieRole& role) {

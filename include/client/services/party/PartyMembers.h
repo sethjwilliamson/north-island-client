@@ -323,6 +323,11 @@ namespace client {
             /// @return Its world scene, or null when it is not in a world scene.
             WorldScene* worldOf(const GameServices& services);
 
+            /// @brief The names of the other own characters in the world.
+            /// @param services The asking character's services.
+            /// @return The names, the played character's first.
+            std::vector<std::string> otherOwnNames(const GameServices& services);
+
             /// @brief Finds the world scene of an own character in the world (the played account, or a member not logging out).
             /// @param playerId The character's id.
             /// @return Its world scene, or null for another player's character.
